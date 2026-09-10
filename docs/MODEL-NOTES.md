@@ -98,7 +98,7 @@ Current is split between the superconducting layer and copper stabilizer by solv
 
 ### NIST copper
 
-For RRR100 OFHC Cu, the app implements the published NIST thermal-conductivity rational fit and specific-heat log-polynomial fit in `4–300 K`. The repository verification value `k(77 K) ≈ 547.199698 W/(m K)` is covered by an automated test.
+For RRR100 OFHC Cu, the app implements the published NIST thermal-conductivity rational fit and specific-heat log-polynomial fit in `4-300 K`. The repository verification value `k(77 K) ≈ 547.199698 W/(m K)` is covered by an automated test.
 
 Copper resistivity is not taken from a NIST resistivity curve. The browser derives an approximate value using
 
@@ -106,7 +106,7 @@ Copper resistivity is not taken from a NIST resistivity curve. The browser deriv
 rho_Cu ≈ L0*T/k_Cu
 ```
 
-with the Sommerfeld Lorenz number. This ignores magnetoresistance and deviations from the ideal Wiedemann–Franz relation.
+with the Sommerfeld Lorenz number. This ignores magnetoresistance and deviations from the ideal Wiedemann-Franz relation.
 
 ## 9. Pairing helper
 
@@ -117,7 +117,7 @@ Tc ≈ omega_log/1.2 * exp[-1.04(1+lambda_epc) /
      (lambda_epc - mu*(1 + 0.62*lambda_epc))]
 ```
 
-The strong-coupling/spectral-shape correction factors of the fuller Allen–Dynes treatment are omitted. This must not be applied as a universal formula to unconventional or strongly correlated superconductors.
+The strong-coupling/spectral-shape correction factors of the fuller Allen-Dynes treatment are omitted. This must not be applied as a universal formula to unconventional or strongly correlated superconductors.
 
 The optional gap reference is the weak-coupling isotropic BCS value
 

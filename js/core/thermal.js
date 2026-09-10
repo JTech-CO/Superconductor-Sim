@@ -35,7 +35,7 @@ export function copperSpecificHeat(T) {
 }
 
 export function copperResistivityWF(T, rrr = 100) {
-  // Wiedemann–Franz inversion is used only as an engineering approximation in this app.
+  // Wiedemann-Franz inversion is used only as an engineering approximation in this app.
   // It is not a replacement for magnetoresistance or a measured residual-resistivity curve.
   const k = copperThermalConductivity(T, rrr);
   return LORENZ * Math.max(T, 1e-6) / Math.max(k, 1e-12);

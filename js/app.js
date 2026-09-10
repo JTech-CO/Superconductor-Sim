@@ -5,9 +5,9 @@ import { QuenchRun, copperThermalConductivity, copperSpecificHeat, copperResisti
 import {
   lambdaAtTemperature, xiAtTemperature, criticalFields, phaseState, jcEffective,
   londonSlabProfile, triangularVortexSpacing, vortexDensity, orderParameterAmplitude,
-  estimateIcA, electricFieldFromJ, allenDynesTc, weakCouplingGapMeV
+  estimateIcA, electricFieldFromJ, allenDynesTc, weakCouplingGapMeV, levitationEstimate
 } from './core/physics.js';
-import { renderFieldScene, renderVortexScene, renderTransportScene, renderThermalScene, renderPhaseScene } from './ui/charts.js';
+import { renderLab3DScene, renderFieldScene, renderVortexScene, renderTransportScene, renderThermalScene, renderPhaseScene, renderLevitationScene } from './ui/charts.js';
 import { t, initLanguage, toggleLanguage, getLanguage } from './ui/i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -18,17 +18,18 @@ const state = {
   experiment: cloneParams(DEFAULT_EXPERIMENT),
   params: cloneParams(MATERIAL_PRESETS[0].params),
   presetId: MATERIAL_PRESETS[0].id,
-  activeView: 'field',
+  activeView: 'lab3d',
   beanActivated: false,
   sweepRunning: false,
   sweepDirection: 1,
   pairing: { lambdaEpc:1.0, muStar:0.10, omegaLogK:300 },
+  scene: { yawDeg:-32, pitchDeg:18, zoom:1, dragging:false, pointerId:null, lastX:0, lastY:0 },
   dirty: true,
   lastFrame: (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now()
 };
 
 function preset() {
-  return MATERIAL_PRESETS.find(p => p.id === state.presetId) || MATERIAL_PRESETS[0];
+  return MATERIAL_PRESETS.find((p) => p.id === state.presetId) || MATERIAL_PRESETS[0];
 }
 
 function cloneParams(p) { return JSON.parse(JSON.stringify(p)); }
@@ -36,6 +37,10 @@ function cloneParams(p) { return JSON.parse(JSON.stringify(p)); }
 function numberOrFallback(v, fallback) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function formatNumber(v, digits = 3) {
@@ -69,6 +74,26 @@ function formatCurrentDensity(v) {
   return `${formatNumber(v, 3)} A/m²`;
 }
 
+function formatForce(v) {
+  if (!Number.isFinite(v)) return 'N/A';
+  const a = Math.abs(v);
+  if (a >= 1) return `${formatNumber(v, 3)} N`;
+  if (a >= 1e-3) return `${formatNumber(v * 1e3, 2)} mN`;
+  return `${formatNumber(v * 1e6, 2)} µN`;
+}
+
+function formatStiffness(v) {
+  if (!Number.isFinite(v)) return 'N/A';
+  const a = Math.abs(v);
+  if (a >= 1000) return `${formatNumber(v / 1000, 2)} kN/m`;
+  if (a >= 1) return `${formatNumber(v, 2)} N/m`;
+  return `${formatNumber(v * 1e3, 2)} mN/m`;
+}
+
+function formatPercent(v) {
+  return Number.isFinite(v) ? `${formatNumber(v * 100, 1)} %` : 'N/A';
+}
+
 function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
 function setValue(id, value) { const el = $(id); if (el) el.value = String(value); }
@@ -91,6 +116,14 @@ function updateAllInputs() {
   setValue('lengthCm', state.experiment.lengthCm);
   setValue('bathTemperatureK', state.experiment.bathTemperatureK);
   setValue('heatTransfer', state.experiment.heatTransferWm2K);
+  setValue('sampleRadiusMm', state.experiment.sampleRadiusMm);
+  setValue('sampleHeightMm', state.experiment.sampleHeightMm);
+  setValue('magnetRadiusMm', state.experiment.magnetRadiusMm);
+  setValue('magnetHeightMm', state.experiment.magnetHeightMm);
+  setValue('magnetGapMm', state.experiment.magnetGapMm);
+  setValue('autoRotate3d', state.experiment.autoRotate3d ? '1' : '0');
+  setValue('showFieldLines3d', state.experiment.showFieldLines3d ? '1' : '0');
+  setValue('showVortices3d', state.experiment.showVortices3d ? '1' : '0');
   setValue('sweepAmplitude', state.experiment.sweepAmplitudeT);
   setValue('sweepRate', state.experiment.sweepRateTPerS);
   setValue('modelMode', state.experiment.modelMode);
@@ -109,10 +142,12 @@ function updateAllInputs() {
 }
 
 function loadPreset(id) {
-  const p = MATERIAL_PRESETS.find(x => x.id === id) || MATERIAL_PRESETS[0];
+  const p = MATERIAL_PRESETS.find((x) => x.id === id) || MATERIAL_PRESETS[0];
   state.presetId = p.id;
   state.params = cloneParams(p.params);
-  state.experiment.temperatureK = Math.min(state.params.tcK * 0.84, p.id.startsWith('nb') ? 4.2 : 77);
+  if (p.id.includes('nb')) state.experiment.temperatureK = 4.2;
+  else if (p.id.includes('mgb2')) state.experiment.temperatureK = 20;
+  else state.experiment.temperatureK = Math.min(state.params.tcK * 0.84, 77);
   state.experiment.bathTemperatureK = state.experiment.temperatureK;
   state.beanActivated = false;
   bean.reset(0);
@@ -161,25 +196,39 @@ function computeSnapshot() {
     bean.reset(0);
   }
 
-  const avgB = profile.reduce((s,p)=>s+p.bT,0) / Math.max(1, profile.length);
+  const avgB = profile.reduce((s, p) => s + p.bT, 0) / Math.max(1, profile.length);
   const g = geometry();
   const icA = estimateIcA(jc, g.widthM, g.scThicknessM);
   const jOp = state.experiment.currentA / Math.max(1e-18, g.widthM * g.scThicknessM);
   const eOp = phase === 'normal' ? state.params.normalResistivityOhmM * jOp : (jc > 0 ? electricFieldFromJ(jOp, jc, state.params.nValue, DEFAULT_EC) : Infinity);
   const sharing = currentSharing({ currentA:state.experiment.currentA, T, BabsT:Babs, angleDeg:state.experiment.fieldAngleDeg, params:state.params, geometry:g, rrr:state.experiment.copperRrr });
   const cuT = Math.max(4, Math.min(300, T));
+  const orderAmplitude = orderParameterAmplitude(T, state.params.tcK);
+  const levitation = levitationEstimate({
+    phase,
+    BappT:B,
+    radiusM:state.experiment.sampleRadiusMm * 1e-3,
+    thicknessM:state.experiment.sampleHeightMm * 1e-3,
+    gapM:state.experiment.magnetGapMm * 1e-3,
+    magnetRadiusM:state.experiment.magnetRadiusMm * 1e-3,
+    magnetHeightM:state.experiment.magnetHeightMm * 1e-3,
+    lambdaM,
+    orderAmplitude,
+    jcAm2:jc
+  });
 
   return {
     T, B, Babs, lambdaM, xiM, fields, equilibriumPhase, phase, jc, halfWidthM, profile, avgB,
     icA, jOp, eOp, sharing, geometry:g,
-    orderAmplitude: orderParameterAmplitude(T, state.params.tcK),
+    orderAmplitude,
     vortexDensity: vortexDensity(avgB),
     vortexSpacingM: triangularVortexSpacing(avgB),
     magnetizationApm: useBean ? bean.magnetizationApm() : (avgB - B) / (4e-7 * Math.PI),
     fullPenetrationT: useBean ? bean.fullPenetrationFieldT() : 0,
     cuK: copperThermalConductivity(cuT, state.experiment.copperRrr),
     cuCp: copperSpecificHeat(cuT),
-    cuRho: copperResistivityWF(cuT, state.experiment.copperRrr)
+    cuRho: copperResistivityWF(cuT, state.experiment.copperRrr),
+    levitation
   };
 }
 
@@ -206,12 +255,17 @@ function renderMetrics(s) {
   setText('metricCuK', `${formatNumber(s.cuK, 3)} W/(m·K)`);
   setText('metricCuCp', `${formatNumber(s.cuCp, 3)} J/(kg·K)`);
   setText('metricCuRho', `${formatNumber(s.cuRho, 3)} Ω·m`);
+  setText('metricLevForce', formatForce(s.levitation.forceN));
+  setText('metricLevStiffness', formatStiffness(s.levitation.stiffnessNm));
+  setText('metricShielding', formatPercent(s.levitation.shielding));
+  setText('metricGapField', formatField(s.levitation.gapFieldT));
+  setText('metricPinning', formatNumber(s.levitation.pinning, 2));
 
   const q = quench.last;
   setText('metricQuenchTime', `${formatNumber(quench.timeS, 3)} s`);
   setText('metricQuenchTemp', `${formatNumber(quench.temperatureK, 3)} K`);
   setText('metricQuenchPower', q ? `${formatNumber(q.pPerLengthWm, 3)} W/m` : '0 W/m');
-  setText('metricCurrentShare', q ? `SC ${formatNumber(q.iScA,1)} A · Cu ${formatNumber(q.iCuA,1)} A` : 'N/A');
+  setText('metricCurrentShare', q ? `SC ${formatNumber(q.iScA, 1)} A · Cu ${formatNumber(q.iCuA, 1)} A` : 'N/A');
 
   const p = preset();
   const badge = $('calibrationBadge');
@@ -221,13 +275,22 @@ function renderMetrics(s) {
   prov.innerHTML = '';
   const entries = Object.entries(state.params.provenance || {});
   entries.forEach(([key, value]) => {
-    const row = document.createElement('div'); row.className = 'prov-row';
-    const k = document.createElement('span'); k.textContent = key;
-    const v = document.createElement('span'); v.textContent = value;
-    row.append(k,v); prov.append(row);
+    const row = document.createElement('div');
+    row.className = 'prov-row';
+    const k = document.createElement('span');
+    k.textContent = key;
+    const v = document.createElement('span');
+    v.textContent = value;
+    row.append(k, v);
+    prov.append(row);
   });
-  const missing = $('missingList'); missing.innerHTML = '';
-  (p.missing || []).forEach(item => { const li = document.createElement('li'); li.textContent = item; missing.append(li); });
+  const missing = $('missingList');
+  missing.innerHTML = '';
+  (p.missing || []).forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    missing.append(li);
+  });
 }
 
 function renderMain(s) {
@@ -235,19 +298,38 @@ function renderMain(s) {
   const pair = $('pairingPanel');
   pair.hidden = state.activeView !== 'pairing';
   main.hidden = state.activeView === 'pairing';
-  document.querySelectorAll('.view-tab').forEach(el => el.classList.toggle('active', el.dataset.view === state.activeView));
+  document.querySelectorAll('.view-tab').forEach((el) => el.classList.toggle('active', el.dataset.view === state.activeView));
   const hintKey = `${state.activeView}Hint`;
   setText('viewHint', t(hintKey));
 
-  if (state.activeView === 'field') {
+  if (state.activeView === 'lab3d') {
+    renderLab3DScene(main, {
+      phase:s.phase,
+      fields:s.fields,
+      stateLabel:phaseLabel(s.phase),
+      levitation:s.levitation,
+      scene:state.scene,
+      geometry:s.geometry,
+      experiment:state.experiment,
+      orderAmplitude:s.orderAmplitude,
+      avgB:s.avgB,
+      vortexSpacingM:s.vortexSpacingM
+    });
+  } else if (state.activeView === 'field') {
     renderFieldScene(main, {
-      profile:s.profile, phase:s.phase, BappT:s.B, halfWidthM:s.halfWidthM, fields:s.fields,
-      stateLabel:phaseLabel(s.phase), magnetizationApm:s.magnetizationApm, fullPenetrationT:s.fullPenetrationT
+      profile:s.profile,
+      phase:s.phase,
+      BappT:s.B,
+      halfWidthM:s.halfWidthM,
+      fields:s.fields,
+      stateLabel:phaseLabel(s.phase),
+      magnetizationApm:s.magnetizationApm,
+      fullPenetrationT:s.fullPenetrationT
     });
   } else if (state.activeView === 'vortices') {
     renderVortexScene(main, { BavgT:s.avgB, fovUm:state.experiment.fieldOfViewUm, xiM:s.xiM, phase:s.phase, orderAmplitude:s.orderAmplitude });
   } else if (state.activeView === 'transport') {
-    renderTransportScene(main, { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase==='normal' });
+    renderTransportScene(main, { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase === 'normal' });
   } else if (state.activeView === 'quench') {
     renderThermalScene(main, { samples:quench.samples, tcK:state.params.tcK, bathK:state.experiment.bathTemperatureK });
   }
@@ -261,28 +343,37 @@ function renderPairing() {
 
 function renderMiniCharts(s) {
   renderPhaseScene($('phaseCanvas'), { params:state.params, temperatureK:s.T, BabsT:s.Babs });
-  renderTransportScene($('transportCanvas'), { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase==='normal' });
+  renderTransportScene($('transportCanvas'), { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase === 'normal' });
   renderThermalScene($('thermalCanvas'), { samples:quench.samples, tcK:state.params.tcK, bathK:state.experiment.bathTemperatureK });
+  renderLevitationScene($('levitationCanvas'), { experiment:state.experiment, phase:s.phase, lambdaM:s.lambdaM, orderAmplitude:s.orderAmplitude, jc:s.jc, BappT:s.B });
 }
 
 function render() {
   const s = computeSnapshot();
-  renderMain(s); renderMetrics(s); renderPairing(); renderMiniCharts(s);
-  setText('materialName', getLanguage()==='ko' ? preset().nameKo : preset().nameEn);
-  setText('operatingSummary', `T ${formatNumber(s.T,2)} K · B ${formatField(s.B)} · I ${formatNumber(state.experiment.currentA,1)} A`);
-  const phasePill = $('phasePill'); phasePill.textContent = phaseLabel(s.phase); phasePill.dataset.phase = s.phase;
-  const sweepBtn = $('sweepToggle'); sweepBtn.textContent = state.sweepRunning ? t('sweepStop') : t('sweepStart');
-  const qBtn = $('quenchToggle'); qBtn.textContent = quench.running ? t('pauseQuench') : t('startQuench');
+  renderMain(s);
+  renderMetrics(s);
+  renderPairing();
+  renderMiniCharts(s);
+  setText('materialName', getLanguage() === 'ko' ? preset().nameKo : preset().nameEn);
+  setText('operatingSummary', `T ${formatNumber(s.T, 2)} K · B ${formatField(s.B)} · I ${formatNumber(state.experiment.currentA, 1)} A · gap ${formatNumber(state.experiment.magnetGapMm, 2)} mm`);
+  const phasePill = $('phasePill');
+  phasePill.textContent = phaseLabel(s.phase);
+  phasePill.dataset.phase = s.phase;
+  const sweepBtn = $('sweepToggle');
+  sweepBtn.textContent = state.sweepRunning ? t('sweepStop') : t('sweepStart');
+  const qBtn = $('quenchToggle');
+  qBtn.textContent = quench.running ? t('pauseQuench') : t('startQuench');
   state.dirty = false;
 }
 
 function bindRangeNumber(rangeId, numberId, getter, setter) {
-  const r = $(rangeId), n = $(numberId);
+  const r = $(rangeId);
+  const n = $(numberId);
   const apply = (source) => {
     const val = numberOrFallback(source.value, getter());
     setter(val);
     if (source === r && n) n.value = String(val);
-    if (source === n && r) r.value = String(Math.max(numberOrFallback(r.min,-Infinity), Math.min(numberOrFallback(r.max,Infinity), val)));
+    if (source === n && r) r.value = String(Math.max(numberOrFallback(r.min, -Infinity), Math.min(numberOrFallback(r.max, Infinity), val)));
     state.dirty = true;
   };
   if (r) r.addEventListener('input', () => apply(r));
@@ -291,14 +382,68 @@ function bindRangeNumber(rangeId, numberId, getter, setter) {
 
 function bindNumber(id, getter, setter) {
   const el = $(id);
-  if (el) el.addEventListener('input', e => { setter(numberOrFallback(e.target.value, getter())); state.dirty = true; });
+  if (el) el.addEventListener('input', (e) => {
+    setter(numberOrFallback(e.target.value, getter()));
+    state.dirty = true;
+  });
+}
+
+function resetCamera() {
+  state.scene.yawDeg = -32;
+  state.scene.pitchDeg = 18;
+  state.scene.zoom = 1;
+  state.dirty = true;
+}
+
+function bindCanvasControls() {
+  const canvas = $('mainCanvas');
+  if (!canvas) return;
+  const endDrag = () => {
+    state.scene.dragging = false;
+    state.scene.pointerId = null;
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state.activeView !== 'lab3d') return;
+    state.scene.dragging = true;
+    state.scene.pointerId = e.pointerId;
+    state.scene.lastX = e.clientX;
+    state.scene.lastY = e.clientY;
+    if (typeof canvas.setPointerCapture === 'function') canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!state.scene.dragging || state.activeView !== 'lab3d') return;
+    const dx = e.clientX - state.scene.lastX;
+    const dy = e.clientY - state.scene.lastY;
+    state.scene.lastX = e.clientX;
+    state.scene.lastY = e.clientY;
+    state.scene.yawDeg += dx * 0.45;
+    state.scene.pitchDeg = clamp(state.scene.pitchDeg + dy * 0.3, -10, 55);
+    state.experiment.autoRotate3d = false;
+    setValue('autoRotate3d', '0');
+    state.dirty = true;
+  });
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('pointerleave', () => {
+    if (state.scene.dragging) endDrag();
+  });
+  canvas.addEventListener('wheel', (e) => {
+    if (state.activeView !== 'lab3d') return;
+    e.preventDefault();
+    state.scene.zoom = clamp(state.scene.zoom * (e.deltaY > 0 ? 0.94 : 1.06), 0.6, 2.1);
+    state.dirty = true;
+  }, { passive:false });
+  canvas.addEventListener('dblclick', () => {
+    if (state.activeView !== 'lab3d') return;
+    resetCamera();
+  });
 }
 
 function bindUI() {
   $('languageToggle').addEventListener('click', toggleLanguage);
-  $('materialPreset').addEventListener('change', e => loadPreset(e.target.value));
-  $('tcOverride').addEventListener('change', e => {
-    const row = TC_BENCHMARKS.find(x => x.formula === e.target.value && x.status !== 'quarantined');
+  $('materialPreset').addEventListener('change', (e) => loadPreset(e.target.value));
+  $('tcOverride').addEventListener('change', (e) => {
+    const row = TC_BENCHMARKS.find((x) => x.formula === e.target.value && x.status !== 'quarantined');
     if (row) {
       state.params.tcK = row.tcExp;
       state.params.provenance = { ...(state.params.provenance || {}), tcK:`repository JARVIS-2022 benchmark: ${row.formula} ${row.tcExp} K` };
@@ -307,82 +452,100 @@ function bindUI() {
     }
   });
 
-  bindRangeNumber('temperatureRange','temperatureNumber',()=>state.experiment.temperatureK,v=>state.experiment.temperatureK=Math.max(0.01,v));
-  bindRangeNumber('fieldRange','fieldNumber',()=>state.experiment.appliedFieldT,v=>state.experiment.appliedFieldT=v);
-  bindRangeNumber('angleRange','angleNumber',()=>state.experiment.fieldAngleDeg,v=>state.experiment.fieldAngleDeg=Math.max(0,Math.min(90,v)));
-  bindRangeNumber('currentRange','currentNumber',()=>state.experiment.currentA,v=>state.experiment.currentA=Math.max(0,v));
+  bindRangeNumber('temperatureRange', 'temperatureNumber', () => state.experiment.temperatureK, (v) => state.experiment.temperatureK = Math.max(0.01, v));
+  bindRangeNumber('fieldRange', 'fieldNumber', () => state.experiment.appliedFieldT, (v) => state.experiment.appliedFieldT = v);
+  bindRangeNumber('angleRange', 'angleNumber', () => state.experiment.fieldAngleDeg, (v) => state.experiment.fieldAngleDeg = Math.max(0, Math.min(90, v)));
+  bindRangeNumber('currentRange', 'currentNumber', () => state.experiment.currentA, (v) => state.experiment.currentA = Math.max(0, v));
 
-  bindNumber('magneticHalfWidth',()=>state.experiment.magneticHalfWidthMm,v=>state.experiment.magneticHalfWidthMm=Math.max(0.0001,v));
-  bindNumber('fovUm',()=>state.experiment.fieldOfViewUm,v=>state.experiment.fieldOfViewUm=Math.max(0.05,v));
-  bindNumber('widthMm',()=>state.experiment.widthMm,v=>state.experiment.widthMm=Math.max(0.001,v));
-  bindNumber('scThicknessUm',()=>state.experiment.scThicknessUm,v=>state.experiment.scThicknessUm=Math.max(0.001,v));
-  bindNumber('copperThicknessUm',()=>state.experiment.copperThicknessUm,v=>state.experiment.copperThicknessUm=Math.max(0,v));
-  bindNumber('lengthCm',()=>state.experiment.lengthCm,v=>state.experiment.lengthCm=Math.max(0.001,v));
-  bindNumber('bathTemperatureK',()=>state.experiment.bathTemperatureK,v=>state.experiment.bathTemperatureK=Math.max(0.01,v));
-  bindNumber('heatTransfer',()=>state.experiment.heatTransferWm2K,v=>state.experiment.heatTransferWm2K=Math.max(0,v));
-  bindNumber('sweepAmplitude',()=>state.experiment.sweepAmplitudeT,v=>state.experiment.sweepAmplitudeT=Math.max(0.001,Math.abs(v)));
-  bindNumber('sweepRate',()=>state.experiment.sweepRateTPerS,v=>state.experiment.sweepRateTPerS=Math.max(0.0001,Math.abs(v)));
+  bindNumber('magneticHalfWidth', () => state.experiment.magneticHalfWidthMm, (v) => state.experiment.magneticHalfWidthMm = Math.max(0.0001, v));
+  bindNumber('fovUm', () => state.experiment.fieldOfViewUm, (v) => state.experiment.fieldOfViewUm = Math.max(0.05, v));
+  bindNumber('widthMm', () => state.experiment.widthMm, (v) => state.experiment.widthMm = Math.max(0.001, v));
+  bindNumber('scThicknessUm', () => state.experiment.scThicknessUm, (v) => state.experiment.scThicknessUm = Math.max(0.001, v));
+  bindNumber('copperThicknessUm', () => state.experiment.copperThicknessUm, (v) => state.experiment.copperThicknessUm = Math.max(0, v));
+  bindNumber('lengthCm', () => state.experiment.lengthCm, (v) => state.experiment.lengthCm = Math.max(0.001, v));
+  bindNumber('bathTemperatureK', () => state.experiment.bathTemperatureK, (v) => state.experiment.bathTemperatureK = Math.max(0.01, v));
+  bindNumber('heatTransfer', () => state.experiment.heatTransferWm2K, (v) => state.experiment.heatTransferWm2K = Math.max(0, v));
+  bindNumber('sampleRadiusMm', () => state.experiment.sampleRadiusMm, (v) => state.experiment.sampleRadiusMm = Math.max(0.5, v));
+  bindNumber('sampleHeightMm', () => state.experiment.sampleHeightMm, (v) => state.experiment.sampleHeightMm = Math.max(0.2, v));
+  bindNumber('magnetRadiusMm', () => state.experiment.magnetRadiusMm, (v) => state.experiment.magnetRadiusMm = Math.max(0.2, v));
+  bindNumber('magnetHeightMm', () => state.experiment.magnetHeightMm, (v) => state.experiment.magnetHeightMm = Math.max(0.2, v));
+  bindNumber('magnetGapMm', () => state.experiment.magnetGapMm, (v) => state.experiment.magnetGapMm = Math.max(0.1, v));
 
-  $('modelMode').addEventListener('change', e => { state.experiment.modelMode=e.target.value; state.beanActivated=false; bean.reset(0); state.dirty=true; });
-  $('sweepToggle').addEventListener('click', () => { state.sweepRunning=!state.sweepRunning; state.dirty=true; });
-  $('resetFlux').addEventListener('click', () => { state.beanActivated=false; bean.reset(0); state.dirty=true; });
+  $('autoRotate3d').addEventListener('change', (e) => { state.experiment.autoRotate3d = e.target.value === '1'; state.dirty = true; });
+  $('showFieldLines3d').addEventListener('change', (e) => { state.experiment.showFieldLines3d = e.target.value === '1'; state.dirty = true; });
+  $('showVortices3d').addEventListener('change', (e) => { state.experiment.showVortices3d = e.target.value === '1'; state.dirty = true; });
 
-  bindNumber('paramTc',()=>state.params.tcK,v=>state.params.tcK=Math.max(0.01,v));
-  bindNumber('paramLambda',()=>state.params.lambda0Nm,v=>state.params.lambda0Nm=Math.max(0.001,v));
-  bindNumber('paramXi',()=>state.params.xi0Nm,v=>state.params.xi0Nm=Math.max(0.001,v));
-  bindNumber('paramJc0',()=>state.params.jc0Am2,v=>state.params.jc0Am2=Math.max(0,v));
-  bindNumber('paramB0',()=>state.params.jcB0T,v=>state.params.jcB0T=Math.max(1e-9,v));
-  bindNumber('paramN',()=>state.params.nValue,v=>state.params.nValue=Math.max(1,v));
-  bindNumber('paramGamma',()=>state.params.anisotropyGamma,v=>state.params.anisotropyGamma=Math.max(1,v));
-  bindNumber('paramRhoNormal',()=>state.params.normalResistivityOhmM,v=>state.params.normalResistivityOhmM=Math.max(1e-12,v));
-  bindNumber('paramCpSc',()=>state.params.cpScJkgK,v=>state.params.cpScJkgK=Math.max(1,v));
+  bindNumber('sweepAmplitude', () => state.experiment.sweepAmplitudeT, (v) => state.experiment.sweepAmplitudeT = Math.max(0.001, Math.abs(v)));
+  bindNumber('sweepRate', () => state.experiment.sweepRateTPerS, (v) => state.experiment.sweepRateTPerS = Math.max(0.0001, Math.abs(v)));
 
-  bindNumber('pairLambda',()=>state.pairing.lambdaEpc,v=>state.pairing.lambdaEpc=Math.max(0.001,v));
-  bindNumber('pairMu',()=>state.pairing.muStar,v=>state.pairing.muStar=Math.max(0,v));
-  bindNumber('pairOmega',()=>state.pairing.omegaLogK,v=>state.pairing.omegaLogK=Math.max(0.001,v));
+  $('modelMode').addEventListener('change', (e) => { state.experiment.modelMode = e.target.value; state.beanActivated = false; bean.reset(0); state.dirty = true; });
+  $('sweepToggle').addEventListener('click', () => { state.sweepRunning = !state.sweepRunning; state.dirty = true; });
+  $('resetFlux').addEventListener('click', () => { state.beanActivated = false; bean.reset(0); state.dirty = true; });
 
-  document.querySelectorAll('.view-tab').forEach(btn => btn.addEventListener('click', () => { state.activeView=btn.dataset.view; state.dirty=true; }));
-  $('quenchToggle').addEventListener('click', () => { quench.running=!quench.running; state.dirty=true; });
-  $('quenchReset').addEventListener('click', () => { quench.reset(state.experiment.temperatureK); state.dirty=true; });
+  bindNumber('paramTc', () => state.params.tcK, (v) => state.params.tcK = Math.max(0.01, v));
+  bindNumber('paramLambda', () => state.params.lambda0Nm, (v) => state.params.lambda0Nm = Math.max(0.001, v));
+  bindNumber('paramXi', () => state.params.xi0Nm, (v) => state.params.xi0Nm = Math.max(0.001, v));
+  bindNumber('paramJc0', () => state.params.jc0Am2, (v) => state.params.jc0Am2 = Math.max(0, v));
+  bindNumber('paramB0', () => state.params.jcB0T, (v) => state.params.jcB0T = Math.max(1e-9, v));
+  bindNumber('paramN', () => state.params.nValue, (v) => state.params.nValue = Math.max(1, v));
+  bindNumber('paramGamma', () => state.params.anisotropyGamma, (v) => state.params.anisotropyGamma = Math.max(1, v));
+  bindNumber('paramRhoNormal', () => state.params.normalResistivityOhmM, (v) => state.params.normalResistivityOhmM = Math.max(1e-12, v));
+  bindNumber('paramCpSc', () => state.params.cpScJkgK, (v) => state.params.cpScJkgK = Math.max(1, v));
+
+  bindNumber('pairLambda', () => state.pairing.lambdaEpc, (v) => state.pairing.lambdaEpc = Math.max(0.001, v));
+  bindNumber('pairMu', () => state.pairing.muStar, (v) => state.pairing.muStar = Math.max(0, v));
+  bindNumber('pairOmega', () => state.pairing.omegaLogK, (v) => state.pairing.omegaLogK = Math.max(0.001, v));
+
+  document.querySelectorAll('.view-tab').forEach((btn) => btn.addEventListener('click', () => { state.activeView = btn.dataset.view; state.dirty = true; }));
+  $('quenchToggle').addEventListener('click', () => { quench.running = !quench.running; state.dirty = true; });
+  $('quenchReset').addEventListener('click', () => { quench.reset(state.experiment.temperatureK); state.dirty = true; });
   $('dataLimitsBtn').addEventListener('click', openDataDialog);
   $('dialogClose').addEventListener('click', closeDataDialog);
   $('exportState').addEventListener('click', exportState);
   $('importState').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', importStateFile);
-  window.addEventListener('languagechange', () => { populateStaticSelects(); populateDataDialog(); state.dirty=true; });
+  window.addEventListener('languagechange', () => { populateStaticSelects(); populateDataDialog(); state.dirty = true; });
   if (typeof window.ResizeObserver === 'function') {
     const ro = new ResizeObserver(() => { state.dirty = true; });
-    document.querySelectorAll('canvas').forEach(c => ro.observe(c));
+    document.querySelectorAll('canvas').forEach((c) => ro.observe(c));
   } else {
     window.addEventListener('resize', () => { state.dirty = true; });
     window.addEventListener('orientationchange', () => { state.dirty = true; });
   }
+  bindCanvasControls();
 }
 
 function populateStaticSelects() {
   const mat = $('materialPreset');
   const currentMat = state.presetId;
-  mat.innerHTML = MATERIAL_PRESETS.map(p => `<option value="${p.id}">${getLanguage()==='ko'?p.nameKo:p.nameEn}</option>`).join('');
+  mat.innerHTML = MATERIAL_PRESETS.map((p) => `<option value="${p.id}">${getLanguage() === 'ko' ? p.nameKo : p.nameEn}</option>`).join('');
   mat.value = currentMat;
   const tc = $('tcOverride');
   const currentTc = tc.value;
-  tc.innerHTML = `<option value="">${t('noOverride')}</option>` + TC_BENCHMARKS.filter(r=>r.status!=='quarantined').map(r=>`<option value="${r.formula}">${r.formula} · ${r.tcExp} K</option>`).join('');
-  if (Array.prototype.some.call(tc.options, o => o.value === currentTc)) tc.value=currentTc;
+  tc.innerHTML = `<option value="">${t('noOverride')}</option>` + TC_BENCHMARKS.filter((r) => r.status !== 'quarantined').map((r) => `<option value="${r.formula}">${r.formula} · ${r.tcExp} K</option>`).join('');
+  if (Array.prototype.some.call(tc.options, (o) => o.value === currentTc)) tc.value = currentTc;
+
+  ['autoRotate3d', 'showFieldLines3d', 'showVortices3d'].forEach((id) => {
+    const el = $(id);
+    const current = el.value;
+    el.innerHTML = `<option value="1">${t('yes')}</option><option value="0">${t('no')}</option>`;
+    if (Array.prototype.some.call(el.options, (o) => o.value === current)) el.value = current;
+  });
 }
 
 function populateDataDialog() {
   const sources = $('sourceCards');
   if (!sources) return;
-  sources.innerHTML = Object.values(SOURCE_LINKS).map(s => `
+  sources.innerHTML = Object.values(SOURCE_LINKS).map((s) => `
     <a class="source-card" href="${s.url}" target="_blank" rel="noopener noreferrer">
-      <strong>${s.id}</strong><span>${s.title}</span><small>${getLanguage()==='ko'?s.noteKo:s.noteEn}</small>
+      <strong>${s.id}</strong><span>${s.title}</span><small>${getLanguage() === 'ko' ? s.noteKo : s.noteEn}</small>
     </a>`).join('');
-  $('benchmarkBody').innerHTML = TC_BENCHMARKS.map(r => `
-    <tr class="${r.status==='quarantined'?'quarantined':''}">
-      <td>${r.formula}</td><td>${valueOrNA(r.sg)}</td><td>${valueOrNA(r.jarvis)}</td><td>${valueOrNA(r.tcExp)}</td><td>${valueOrNA(r.tcScdft)}</td><td>${valueOrNA(r.tcLm)}</td><td>${valueOrNA(r.tcJscr)}</td><td>${r.pressurePa ? formatNumber(r.pressurePa/1e9,0)+' GPa' : 'N/A'}</td><td>${r.status}</td>
+  $('benchmarkBody').innerHTML = TC_BENCHMARKS.map((r) => `
+    <tr class="${r.status === 'quarantined' ? 'quarantined' : ''}">
+      <td>${r.formula}</td><td>${valueOrNA(r.sg)}</td><td>${valueOrNA(r.jarvis)}</td><td>${valueOrNA(r.tcExp)}</td><td>${valueOrNA(r.tcScdft)}</td><td>${valueOrNA(r.tcLm)}</td><td>${valueOrNA(r.tcJscr)}</td><td>${r.pressurePa ? formatNumber(r.pressurePa / 1e9, 0) + ' GPa' : 'N/A'}</td><td>${r.status}</td>
     </tr>`).join('');
-  $('modelMatrixBody').innerHTML = MODEL_MATRIX.map(m => `
-    <tr><td>${m.id}</td><td>${m.priority}</td><td>${getLanguage()==='ko'?m.ko:m.en}</td><td>${m.model}</td></tr>`).join('');
+  $('modelMatrixBody').innerHTML = MODEL_MATRIX.map((m) => `
+    <tr><td>${m.id}</td><td>${m.priority}</td><td>${getLanguage() === 'ko' ? m.ko : m.en}</td><td>${m.model}</td></tr>`).join('');
 }
 
 function valueOrNA(value) {
@@ -408,12 +571,12 @@ function readFileText(file) {
 function openDataDialog() {
   populateDataDialog();
   const d = $('dataDialog');
-  if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open','');
+  if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
 }
 
 function exportState() {
   const payload = {
-    schema_version:'superconductor-sim-state/0.1.1',
+    schema_version:'superconductor-sim-state/0.2.0',
     exported_at:new Date().toISOString(),
     source_repository:SOURCE_LINKS.researchRepo.url,
     preset_id:state.presetId,
@@ -421,27 +584,42 @@ function exportState() {
     experiment:state.experiment,
     material_parameters:state.params,
     pairing_estimator:state.pairing,
+    camera_state:{ yawDeg:state.scene.yawDeg, pitchDeg:state.scene.pitchDeg, zoom:state.scene.zoom },
     warnings:[
       'This file is a simulator state, not a sample-calibrated material card.',
+      'Levitation force and 3-D scene layers are heuristic and must not be relabeled as measured values.',
       'Fields marked as assumptions must not be reclassified as measurements.'
     ]
   };
-  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='superconductor-sim-state.json'; a.click(); URL.revokeObjectURL(a.href);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'superconductor-sim-state.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function importStateFile(e) {
-  const file = e.target.files && e.target.files[0]; if (!file) return;
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
   try {
     const obj = JSON.parse(await readFileText(file));
-    if (obj.preset_id && MATERIAL_PRESETS.some(p=>p.id===obj.preset_id)) state.presetId=obj.preset_id;
-    if (obj.experiment && typeof obj.experiment==='object') state.experiment=Object.assign({}, state.experiment, obj.experiment);
-    if (obj.material_parameters && typeof obj.material_parameters==='object') state.params=Object.assign({}, state.params, obj.material_parameters);
-    if (obj.pairing_estimator && typeof obj.pairing_estimator==='object') state.pairing=Object.assign({}, state.pairing, obj.pairing_estimator);
-    state.beanActivated=false; bean.reset(0); quench.reset(state.experiment.temperatureK); updateAllInputs(); state.dirty=true;
+    if (obj.preset_id && MATERIAL_PRESETS.some((p) => p.id === obj.preset_id)) state.presetId = obj.preset_id;
+    if (obj.experiment && typeof obj.experiment === 'object') state.experiment = Object.assign({}, state.experiment, obj.experiment);
+    if (obj.material_parameters && typeof obj.material_parameters === 'object') state.params = Object.assign({}, state.params, obj.material_parameters);
+    if (obj.pairing_estimator && typeof obj.pairing_estimator === 'object') state.pairing = Object.assign({}, state.pairing, obj.pairing_estimator);
+    if (obj.camera_state && typeof obj.camera_state === 'object') state.scene = Object.assign({}, state.scene, obj.camera_state);
+    state.beanActivated = false;
+    bean.reset(0);
+    quench.reset(state.experiment.temperatureK);
+    updateAllInputs();
+    state.dirty = true;
   } catch (err) {
-    console.error(err); alert('Invalid Superconductor Sim JSON');
-  } finally { e.target.value=''; }
+    console.error(err);
+    alert('Invalid Superconductor Sim JSON');
+  } finally {
+    e.target.value = '';
+  }
 }
 
 function animationFrame(now) {
@@ -450,12 +628,16 @@ function animationFrame(now) {
   if (state.sweepRunning) {
     const amp = Math.max(0.001, state.experiment.sweepAmplitudeT);
     let B = state.experiment.appliedFieldT + state.sweepDirection * state.experiment.sweepRateTPerS * realDt;
-    if (B >= amp) { B=amp; state.sweepDirection=-1; }
-    if (B <= -amp) { B=-amp; state.sweepDirection=1; }
-    state.experiment.appliedFieldT=B;
+    if (B >= amp) { B = amp; state.sweepDirection = -1; }
+    if (B <= -amp) { B = -amp; state.sweepDirection = 1; }
+    state.experiment.appliedFieldT = B;
     setValue('fieldNumber', B.toFixed(6));
-    setValue('fieldRange', Math.max(-2,Math.min(2,B)));
-    state.dirty=true;
+    setValue('fieldRange', Math.max(-2, Math.min(2, B)));
+    state.dirty = true;
+  }
+  if (state.experiment.autoRotate3d && state.activeView === 'lab3d' && !state.scene.dragging) {
+    state.scene.yawDeg += realDt * 12;
+    state.dirty = true;
   }
   if (quench.running) {
     const inputs = {
@@ -468,10 +650,9 @@ function animationFrame(now) {
       bathTemperatureK:state.experiment.bathTemperatureK,
       heatTransferWm2K:state.experiment.heatTransferWm2K
     };
-    // Fixed integration step; several steps per frame for deterministic browser behavior.
-    for (let i=0;i<6;i++) quench.step(inputs,0.003);
-    if (quench.temperatureK > 500 || quench.timeS > 30) quench.running=false;
-    state.dirty=true;
+    for (let i = 0; i < 6; i++) quench.step(inputs, 0.003);
+    if (quench.temperatureK > 500 || quench.timeS > 30) quench.running = false;
+    state.dirty = true;
   }
   if (state.dirty) render();
   requestAnimationFrame(animationFrame);
@@ -479,6 +660,9 @@ function animationFrame(now) {
 
 function init() {
   initLanguage();
+  state.presetId = DEFAULT_EXPERIMENT.materialId || MATERIAL_PRESETS[0].id;
+  const initialPreset = MATERIAL_PRESETS.find((p) => p.id === state.presetId) || MATERIAL_PRESETS[0];
+  state.params = cloneParams(initialPreset.params);
   populateStaticSelects();
   bindUI();
   updateAllInputs();

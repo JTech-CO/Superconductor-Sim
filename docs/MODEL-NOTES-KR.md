@@ -96,7 +96,7 @@ C' dT/dt = E*I - h*P*(T - Tbath)
 
 ### NIST 구리
 
-RRR100 OFHC Cu에 대해 NIST 공개 열전도율 rational fit과 비열 log-polynomial fit을 `4–300 K` 범위에서 구현했다. 원 연구 저장소의 검증값 `k(77 K) ≈ 547.199698 W/(m K)`를 자동시험으로 확인한다.
+RRR100 OFHC Cu에 대해 NIST 공개 열전도율 rational fit과 비열 log-polynomial fit을 `4-300 K` 범위에서 구현했다. 원 연구 저장소의 검증값 `k(77 K) ≈ 547.199698 W/(m K)`를 자동시험으로 확인한다.
 
 구리 저항률은 NIST 저항률 피팅이 아니다. 앱은 Sommerfeld Lorenz 수를 사용한
 
@@ -104,7 +104,7 @@ RRR100 OFHC Cu에 대해 NIST 공개 열전도율 rational fit과 비열 log-pol
 rho_Cu ≈ L0*T/k_Cu
 ```
 
-근사로 도출한다. 자기저항과 이상 Wiedemann–Franz 관계에서의 편차는 포함하지 않는다.
+근사로 도출한다. 자기저항과 이상 Wiedemann-Franz 관계에서의 편차는 포함하지 않는다.
 
 ## 9. 결합 보조 계산
 
@@ -115,7 +115,7 @@ Tc ≈ omega_log/1.2 * exp[-1.04(1+lambda_epc) /
      (lambda_epc - mu*(1 + 0.62*lambda_epc))]
 ```
 
-완전한 Allen–Dynes 식의 강결합·스펙트럼 형상 보정 인자는 생략한다. 비전통·강상관 초전도체에 보편식처럼 적용해서는 안 된다.
+완전한 Allen-Dynes 식의 강결합·스펙트럼 형상 보정 인자는 생략한다. 비전통·강상관 초전도체에 보편식처럼 적용해서는 안 된다.
 
 약결합 기준 갭은
 

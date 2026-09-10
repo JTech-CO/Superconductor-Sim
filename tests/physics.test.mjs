@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BeanSlab } from '../js/core/bean.js';
 import { copperThermalConductivity, copperSpecificHeat, thermalStep } from '../js/core/thermal.js';
-import { londonSlabProfile, criticalFields, allenDynesTc, jcEffective } from '../js/core/physics.js';
+import { londonSlabProfile, criticalFields, allenDynesTc, jcEffective, levitationEstimate } from '../js/core/physics.js';
 
 const generic = {
   tcK:92, lambda0Nm:150, xi0Nm:2, jc0Am2:3e10, jcB0T:0.6,
@@ -62,4 +62,14 @@ test('electrothermal step remains finite', () => {
   }, 0.001);
   assert.ok(Number.isFinite(result.temperatureK));
   assert.ok(Number.isFinite(result.eVm));
+});
+
+
+test('levitation heuristic returns finite positive force in the superconducting state', () => {
+  const lev = levitationEstimate({
+    phase:'mixed', BappT:0.08, radiusM:0.012, thicknessM:0.006, gapM:0.005, magnetRadiusM:0.009, magnetHeightM:0.007,
+    lambdaM:200e-9, orderAmplitude:0.5, jcAm2:2e10
+  });
+  assert.ok(Number.isFinite(lev.forceN) && lev.forceN > 0);
+  assert.ok(Number.isFinite(lev.stiffnessNm));
 });

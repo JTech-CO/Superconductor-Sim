@@ -73,6 +73,13 @@ const SOURCE_LINKS = {
     url: 'https://archive.ics.uci.edu/dataset/464/superconductivty%2Bdata',
     noteEn: 'Composition-derived feature dataset for Tc regression; not a sample-complete simulation dataset.',
     noteKo: 'Tc 회귀용 조성 특징 데이터셋이며 시료 단위 완성형 시뮬레이션 데이터가 아님.'
+  },
+  levitation: {
+    id: 'LEVITATION',
+    title: 'Levitation benchmark literature (qualitative scope)',
+    url: 'https://arxiv.org/abs/cond-mat/0111316',
+    noteEn: 'Context for magnet-superconductor levitation and hysteretic force; this app uses only a heuristic display layer.',
+    noteKo: '자기부상과 히스테리시스 힘의 맥락 참고. 이 앱은 정량 보정보다는 휴리스틱 표현층만 사용한다.'
   }
 };
 
@@ -112,13 +119,133 @@ const MODEL_MATRIX = [
 
 const MATERIAL_PRESETS = [
   {
+    id: 'rebco-tape-77k',
+    formula: 'REBCO',
+    nameEn: 'REBCO coated conductor - 77 K engineering preset',
+    nameKo: 'REBCO 코팅도체 - 77 K 엔지니어링 프리셋',
+    calibrationReady: false,
+    provenanceClass: 'mixed',
+    missing: ['sample_id','measured Jc(T,B,theta)','layer-specific thermal stack','measured E-J curve','joint resistance','force-displacement benchmark'],
+    params: {
+      tcK: 92,
+      lambda0Nm: 150,
+      xi0Nm: 2.1,
+      jc0Am2: 3.2e10,
+      jcB0T: 0.65,
+      jcTempExp: 1.55,
+      jcFieldExp: 0.68,
+      anisotropyGamma: 5.4,
+      nValue: 26,
+      normalResistivityOhmM: 1e-6,
+      densityScKgM3: 6300,
+      cpScJkgK: 180,
+      provenance: {
+        tcK: 'representative cuprate engineering assumption',
+        lambda0Nm: 'representative cuprate engineering assumption',
+        xi0Nm: 'representative cuprate engineering assumption',
+        jc0Am2: 'engineering-scale assumption; not sample-calibrated',
+        nValue: 'engineering-scale assumption; not sample-calibrated'
+      }
+    }
+  },
+  {
+    id: 'ybco-bulk-demo',
+    formula: 'YBCO bulk',
+    nameEn: 'Bulk YBCO - levitation-oriented demo preset',
+    nameKo: '벌크 YBCO - 자기부상 시연 프리셋',
+    calibrationReady: false,
+    provenanceClass: 'assumed',
+    missing: ['sample_id','measured trapped-flux map','force-distance loop','oxygen-order history','microstructure and pinning map'],
+    params: {
+      tcK: 91,
+      lambda0Nm: 165,
+      xi0Nm: 2.4,
+      jc0Am2: 1.4e10,
+      jcB0T: 0.42,
+      jcTempExp: 1.6,
+      jcFieldExp: 0.74,
+      anisotropyGamma: 5.8,
+      nValue: 22,
+      normalResistivityOhmM: 1.2e-6,
+      densityScKgM3: 6380,
+      cpScJkgK: 190,
+      provenance: {
+        tcK: 'bulk YBCO demo assumption',
+        lambda0Nm: 'bulk YBCO demo assumption',
+        xi0Nm: 'bulk YBCO demo assumption',
+        jc0Am2: 'bulk levitation demo assumption',
+        nValue: 'bulk levitation demo assumption'
+      }
+    }
+  },
+  {
+    id: 'mgb2-wire-demo',
+    formula: 'MgB2',
+    nameEn: 'MgB2 - 20 K wire-like demo preset',
+    nameKo: 'MgB2 - 20 K 와이어형 시연 프리셋',
+    calibrationReady: false,
+    provenanceClass: 'mixed',
+    missing: ['sample-specific Jc(B,T)','wire architecture','measured copper fraction','electrothermal benchmark'],
+    params: {
+      tcK: 39,
+      lambda0Nm: 100,
+      xi0Nm: 5.2,
+      jc0Am2: 8.5e9,
+      jcB0T: 1.6,
+      jcTempExp: 1.35,
+      jcFieldExp: 0.62,
+      anisotropyGamma: 1.3,
+      nValue: 24,
+      normalResistivityOhmM: 2.2e-7,
+      densityScKgM3: 2570,
+      cpScJkgK: 350,
+      provenance: {
+        tcK: 'JARVIS literature benchmark value: MgB2 39 K',
+        lambda0Nm: 'representative MgB2 engineering assumption',
+        xi0Nm: 'representative MgB2 engineering assumption',
+        jc0Am2: 'engineering assumption; not sample-calibrated',
+        nValue: 'engineering assumption; not sample-calibrated'
+      }
+    }
+  },
+  {
+    id: 'nb-hybrid-2026',
+    formula: 'Nb',
+    nameEn: 'Niobium - hybrid literature reference',
+    nameKo: '나이오븀 - 문헌 혼합 참조',
+    calibrationReady: false,
+    provenanceClass: 'mixed',
+    missing: ['sample-specific Jc(T,B)','sample geometry','measured E-J curve','thermal boundary data','measured levitation benchmark'],
+    params: {
+      tcK: 9.3,
+      lambda0Nm: 29.1,
+      xi0Nm: 39.9,
+      jc0Am2: 1.0e9,
+      jcB0T: 0.08,
+      jcTempExp: 1.5,
+      jcFieldExp: 0.8,
+      anisotropyGamma: 1,
+      nValue: 30,
+      normalResistivityOhmM: 1.5e-7,
+      densityScKgM3: 8570,
+      cpScJkgK: 100,
+      provenance: {
+        tcK: 'repository JARVIS-2022 Table 1 literature reference',
+        lambda0Nm: 'McFadden et al. 2026: lambdaL = 29.1(10) nm',
+        xi0Nm: 'McFadden et al. 2026: xi0 = 39.9(25) nm',
+        jc0Am2: 'demo assumption - not sample-calibrated',
+        nValue: 'demo assumption - not sample-calibrated'
+      }
+    }
+  },
+  {
     id: 'generic-type-ii',
     formula: 'Type-II demo',
     nameEn: 'Generic Type-II - demonstration card',
     nameKo: '일반 제2종 - 시연용 카드',
     calibrationReady: false,
     provenanceClass: 'assumed',
-    missing: ['sample_id','measured Jc(T,B,θ)','measured λ(T)','measured ξ(T)','raw E-J curve','cooling boundary data'],
+    missing: ['sample_id','measured Jc(T,B,theta)','measured lambda(T)','measured xi(T)','raw E-J curve','cooling boundary data'],
     params: {
       tcK: 92,
       lambda0Nm: 150,
@@ -137,41 +264,11 @@ const MATERIAL_PRESETS = [
         jc0Am2: 'demo assumption', nValue: 'demo assumption'
       }
     }
-  },
-  {
-    id: 'nb-hybrid-2026',
-    formula: 'Nb',
-    nameEn: 'Niobium - hybrid literature reference',
-    nameKo: '나이오븀 - 문헌 혼합 참조',
-    calibrationReady: false,
-    provenanceClass: 'mixed',
-    missing: ['sample-specific Jc(T,B)','sample geometry','measured E-J curve','thermal boundary data'],
-    params: {
-      tcK: 9.3,
-      lambda0Nm: 29.1,
-      xi0Nm: 39.9,
-      jc0Am2: 1e9,
-      jcB0T: 0.08,
-      jcTempExp: 1.5,
-      jcFieldExp: 0.8,
-      anisotropyGamma: 1,
-      nValue: 30,
-      normalResistivityOhmM: 1.5e-7,
-      densityScKgM3: 8570,
-      cpScJkgK: 100,
-      provenance: {
-        tcK: 'repository JARVIS-2022 Table 1 literature reference',
-        lambda0Nm: 'McFadden et al. 2026: λL = 29.1(10) nm',
-        xi0Nm: 'McFadden et al. 2026: ξ0 = 39.9(25) nm',
-        jc0Am2: 'demo assumption - not sample-calibrated',
-        nValue: 'demo assumption - not sample-calibrated'
-      }
-    }
   }
 ];
 
 const DEFAULT_EXPERIMENT = {
-  materialId: 'generic-type-ii',
+  materialId: 'rebco-tape-77k',
   temperatureK: 77,
   appliedFieldT: 0.08,
   fieldAngleDeg: 90,
@@ -187,7 +284,15 @@ const DEFAULT_EXPERIMENT = {
   copperRrr: 100,
   sweepAmplitudeT: 0.5,
   sweepRateTPerS: 0.08,
-  modelMode: 'hybrid'
+  modelMode: 'hybrid',
+  sampleRadiusMm: 12,
+  sampleHeightMm: 6,
+  magnetRadiusMm: 9,
+  magnetHeightMm: 7,
+  magnetGapMm: 5,
+  autoRotate3d: true,
+  showFieldLines3d: true,
+  showVortices3d: true
 };
 
 
@@ -317,7 +422,6 @@ function criticalFields({ lambdaM, xiM, T, Tc }) {
   const bcT = PHI0 / (2 * Math.sqrt(2) * Math.PI * lambdaM * xiM);
   let bc1T = bcT;
   if (kappa > TYPE_BOUNDARY) {
-    // London/GL large-kappa approximation; shown as approximate near the type boundary.
     bc1T = PHI0 / (4 * Math.PI * lambdaM * lambdaM) * Math.max(0, Math.log(Math.max(kappa, 1e-12)) + 0.5);
   }
   return { type, kappa, bc1T, bcT, bc2T };
@@ -404,7 +508,7 @@ function allenDynesTc(lambdaEpc, muStar, omegaLogK) {
 
 function weakCouplingGapMeV(TcK) {
   if (!(TcK > 0)) return 0;
-  return 1.764 * K_B * TcK / 1.602176634e-22; // J to meV
+  return 1.764 * K_B * TcK / 1.602176634e-22;
 }
 
 function orderParameterAmplitude(T, Tc) {
@@ -414,6 +518,53 @@ function orderParameterAmplitude(T, Tc) {
 
 function estimateIcA(jcAm2, widthM, scThicknessM) {
   return Math.max(0, jcAm2 * Math.max(0, widthM) * Math.max(0, scThicknessM));
+}
+
+function levitationCoupling(gapM, magnetRadiusM) {
+  return Math.exp(-Math.max(0, gapM) / Math.max(1e-5, 0.55 * magnetRadiusM));
+}
+
+function shieldingFraction({ phase, lambdaM, thicknessM, orderAmplitude }) {
+  if (phase === 'normal') return 0;
+  const base = 1 - Math.exp(-Math.max(0, thicknessM) / Math.max(1e-12, 2 * Math.max(lambdaM, 1e-12)));
+  if (phase === 'meissner') return clamp(0.72 + 0.28 * base, 0, 1);
+  return clamp((0.28 + 0.48 * base) * (0.55 + 0.45 * Math.max(0, orderAmplitude)), 0, 1);
+}
+
+function pinningIndex({ phase, jcAm2, orderAmplitude }) {
+  if (phase !== 'mixed') return phase === 'meissner' ? 0.08 : 0;
+  const jcScale = Math.max(0, jcAm2) / (Math.max(0, jcAm2) + 3e9);
+  return clamp((0.4 + 0.6 * jcScale) * (0.55 + 0.45 * Math.max(0, orderAmplitude)), 0, 1.3);
+}
+
+function levitationEstimate({
+  phase, BappT, radiusM, thicknessM, gapM, magnetRadiusM, magnetHeightM,
+  lambdaM, orderAmplitude, jcAm2
+}) {
+  const area = Math.PI * Math.max(1e-10, radiusM) * Math.max(1e-10, radiusM);
+  const coupling = levitationCoupling(gapM, magnetRadiusM);
+  const faceBoost = 1 + 0.2 * clamp(magnetHeightM / Math.max(1e-6, magnetRadiusM), 0, 2.5);
+  const gapFieldT = Math.abs(BappT) * coupling * faceBoost;
+  const shield = shieldingFraction({ phase, lambdaM, thicknessM, orderAmplitude });
+  const pinning = pinningIndex({ phase, jcAm2, orderAmplitude });
+  const pressurePa = 0.5 * shield * gapFieldT * gapFieldT / MU0 * (1 + 0.65 * pinning);
+  const forceN = pressurePa * area;
+  const gap2 = gapM + Math.max(1e-5, 0.0004 * Math.max(1, radiusM * 1000));
+  const coupling2 = levitationCoupling(gap2, magnetRadiusM);
+  const gapField2 = Math.abs(BappT) * coupling2 * faceBoost;
+  const pressure2 = 0.5 * shield * gapField2 * gapField2 / MU0 * (1 + 0.65 * pinning);
+  const force2 = pressure2 * area;
+  const stiffnessNm = (force2 - forceN) / Math.max(1e-9, gap2 - gapM);
+  return {
+    areaM2: area,
+    gapFieldT,
+    shielding: shield,
+    pinning,
+    pressurePa,
+    forceN,
+    stiffnessNm,
+    coupling
+  };
 }
 
 
@@ -453,7 +604,7 @@ function copperSpecificHeat(T) {
 }
 
 function copperResistivityWF(T, rrr = 100) {
-  // Wiedemann–Franz inversion is used only as an engineering approximation in this app.
+  // Wiedemann-Franz inversion is used only as an engineering approximation in this app.
   // It is not a replacement for magnetoresistance or a measured residual-resistivity curve.
   const k = copperThermalConductivity(T, rrr);
   return LORENZ * Math.max(T, 1e-6) / Math.max(k, 1e-12);
@@ -579,50 +730,58 @@ const dict = {
     notCalibrated: 'NOT SAMPLE-CALIBRATED',
     experiment: 'Experiment', materialPreset: 'Material preset', temperature: 'Temperature', appliedField: 'Applied field', fieldAngle: 'Field angle', transportCurrent: 'Transport current',
     sweep: 'Field sweep', sweepStart: 'Start sweep', sweepStop: 'Stop sweep', sweepAmplitude: 'Amplitude', sweepRate: 'Sweep rate', resetHistory: 'Reset flux history',
-    geometry: 'Geometry & cooling', magneticHalfWidth: 'Magnetic half-width', tapeWidth: 'Conductor width', scThickness: 'SC thickness', copperThickness: 'Cu stabilizer thickness', length: 'Conductor length', bathTemperature: 'Bath temperature', heatTransfer: 'Heat-transfer coefficient',
-    advanced: 'Advanced material parameters', lambda0: 'λ reference', xi0: 'ξ reference', jc0: 'Jc0', b0: 'Jc field scale B0', nValue: 'E-J exponent n', anisotropy: 'Anisotropy γ', normalResistivity: 'SC normal resistivity', scCp: 'SC specific heat',
-    field: 'Field / phase', vortices: 'Vortices', transport: 'Transport', quench: 'Quench', pairing: 'Pairing',
-    phase: 'Phase', scType: 'GL type', kappa: 'κ', bc1: 'Bc1', bc: 'Bc', bc2: 'Bc2', penetration: 'λ(T)', coherence: 'ξ(T)', orderParameter: '|ψ| scale', jc: 'Jc', ic: 'Estimated Ic', eField: 'E at operating point', magnetization: 'Bean M', fullPenetration: 'Bean Bp', vortexSpacing: 'Vortex spacing', vortexDensity: 'Vortex density',
-    copper: 'Copper stabilizer', cuK: 'kCu', cuCp: 'cp,Cu', cuRho: 'ρCu (WF approx.)', provenance: 'Data provenance', missingFields: 'Missing for calibration',
-    modelNote: 'Model note', modelNoteText: 'London/GL, Bean critical-state, phenomenological Jc and a lumped electrothermal model are coupled here. Full TDGL, 3-D Maxwell FEM, chemistry kinetics and sample-calibrated levitation force are not solved.',
+    geometry: 'Geometry, cooling and 3-D scene', magneticHalfWidth: 'Magnetic half-width', tapeWidth: 'Conductor width', scThickness: 'SC thickness', copperThickness: 'Cu stabilizer thickness', length: 'Conductor length', bathTemperature: 'Bath temperature', heatTransfer: 'Heat-transfer coefficient',
+    sampleRadius: 'Sample radius', sampleHeight: 'Sample height', magnetRadius: 'Magnet radius', magnetHeight: 'Magnet height', magnetGap: 'Magnet-sample gap', autoRotate3d: '3-D auto-rotate', showFieldLines3d: 'Show field lines', showVortices3d: 'Show vortices',
+    advanced: 'Advanced material parameters', lambda0: 'lambda reference', xi0: 'xi reference', jc0: 'Jc0', b0: 'Jc field scale B0', nValue: 'E-J exponent n', anisotropy: 'Anisotropy gamma', normalResistivity: 'SC normal resistivity', scCp: 'SC specific heat',
+    lab3d: '3-D lab', field: 'Field / phase', vortices: 'Vortices', transport: 'Transport', quench: 'Quench', pairing: 'Pairing',
+    phase: 'Phase', scType: 'GL type', kappa: 'kappa', bc1: 'Bc1', bc: 'Bc', bc2: 'Bc2', penetration: 'lambda(T)', coherence: 'xi(T)', orderParameter: '|psi| scale', jc: 'Jc', ic: 'Estimated Ic', eField: 'E at operating point', magnetization: 'Bean M', fullPenetration: 'Bean Bp', vortexSpacing: 'Vortex spacing', vortexDensity: 'Vortex density',
+    copper: 'Copper stabilizer', cuK: 'kCu', cuCp: 'cp,Cu', cuRho: 'rhoCu (WF approx.)', provenance: 'Data provenance', missingFields: 'Missing for calibration',
+    levitation: 'Levitation / 3-D', levForce: 'Heuristic Fz', levStiffness: 'dF/dz', shieldFraction: 'Shielding fraction', gapField: 'Gap field', pinningIndex: 'Pinning index',
+    modelNote: 'Model note', modelNoteText: 'London/GL, Bean critical-state, phenomenological Jc and a lumped electrothermal model are coupled here. The 3-D lab and levitation force are heuristic visual and engineering layers, not a calibrated 3-D FEM solver.',
     dataLimits: 'Data & model limits', exportState: 'Export state', importState: 'Import JSON', language: '한국어',
     startQuench: 'Start thermal run', pauseQuench: 'Pause', resetQuench: 'Reset thermal run', quenchTime: 'Simulation time', conductorTemp: 'Conductor temperature', powerPerLength: 'Joule power / length', currentSharing: 'Current sharing',
-    pairingTitle: 'Conventional EPC Tc estimator', lambdaEpc: 'Electron-phonon λ', muStar: 'Coulomb μ*', omegaLog: 'ωlog (K)', estimatedTc: 'Estimated Tc', weakGap: 'Weak-coupling Δ0', pairingWarning: 'Simplified McMillan–Allen–Dynes form. Not valid as a universal Tc model for unconventional, multiband, strongly correlated, or otherwise out-of-domain systems.',
+    pairingTitle: 'Conventional EPC Tc estimator', lambdaEpc: 'Electron-phonon lambda', muStar: 'Coulomb mu*', omegaLog: 'omega_log (K)', estimatedTc: 'Estimated Tc', weakGap: 'Weak-coupling Delta0', pairingWarning: 'Simplified McMillan-Allen-Dynes form. Not valid as a universal Tc model for unconventional, multiband, strongly correlated, or otherwise out-of-domain systems.',
     benchmarkTitle: 'Repository Tc benchmark table', sourceTitle: 'Primary references used by this app', modelMatrixTitle: 'Research model coverage',
     close: 'Close', statusReady: 'Calibration-ready', statusNotReady: 'Exploratory / incomplete', customTc: 'Use benchmark Tc', noOverride: 'No Tc override',
+    lab3dHint: 'Drag on the main canvas to orbit the 3-D scene. The levitation force and field lines are qualitative engineering estimates, not calibrated force measurements.',
     fieldHint: 'Drag the applied-field slider or run a sweep. Mixed-state hysteresis uses the 1-D Bean critical-state approximation.',
-    vortexHint: 'Vortex density is set by |B|/Φ0 using the average internal Bean field. Core rendering uses ξ only as a visual scale.',
-    transportHint: 'The curve uses E = Ec(|J|/Jc)^n with an anisotropic phenomenological Jc(T,B,θ).',
-    quenchHint: '0-D per-unit-length thermal balance with current sharing. NIST RRR100 Cu k(T) and cp(T) are evaluated in their published 4–300 K range.',
+    vortexHint: 'Vortex density is set by |B|/Phi0 using the average internal Bean field. Core rendering uses xi only as a visual scale.',
+    transportHint: 'The curve uses E = Ec(|J|/Jc)^n with an anisotropic phenomenological Jc(T,B,theta).',
+    quenchHint: '0-D per-unit-length thermal balance with current sharing. NIST RRR100 Cu k(T) and cp(T) are evaluated in their published 4-300 K range.',
     pairingHint: 'Microscopic screening helper only; it is independent from the macroscopic field solver.',
     meissner: 'Meissner', mixed: 'Mixed / vortex', normal: 'Normal', 'type-i':'Type I', 'type-ii':'Type II', borderline:'Borderline I/II',
     sourceMeasured: 'measured/literature', sourceAssumed: 'assumed', sourceMixed: 'mixed', custom: 'Custom',
-    footer: 'Static GitHub Pages build · no server · no external runtime dependencies'
+    footer: 'Static GitHub Pages build - no server - no external runtime dependencies',
+    yes: 'On', no: 'Off'
   },
   ko: {
     appSubtitle: '데이터 출처를 추적하는 다중 규모 브라우저 시뮬레이터',
     notCalibrated: '시료 단위 보정 아님',
     experiment: '실험 조건', materialPreset: '재료 프리셋', temperature: '온도', appliedField: '인가 자기장', fieldAngle: '자기장 각도', transportCurrent: '수송 전류',
     sweep: '자기장 스윕', sweepStart: '스윕 시작', sweepStop: '스윕 정지', sweepAmplitude: '진폭', sweepRate: '스윕 속도', resetHistory: '자속 이력 초기화',
-    geometry: '형상·냉각', magneticHalfWidth: '자기 모델 반폭', tapeWidth: '도체 폭', scThickness: '초전도층 두께', copperThickness: 'Cu 안정화층 두께', length: '도체 길이', bathTemperature: '냉각조 온도', heatTransfer: '열전달 계수',
-    advanced: '고급 재료 파라미터', lambda0: 'λ 기준값', xi0: 'ξ 기준값', jc0: 'Jc0', b0: 'Jc 자기장 스케일 B0', nValue: 'E-J 지수 n', anisotropy: '이방성 γ', normalResistivity: '초전도층 정상저항률', scCp: '초전도층 비열',
-    field: '자기장 / 상', vortices: '보텍스', transport: '수송', quench: '퀜치', pairing: '결합',
-    phase: '상태', scType: 'GL 분류', kappa: 'κ', bc1: 'Bc1', bc: 'Bc', bc2: 'Bc2', penetration: 'λ(T)', coherence: 'ξ(T)', orderParameter: '|ψ| 스케일', jc: 'Jc', ic: '추정 Ic', eField: '운전점 E', magnetization: 'Bean M', fullPenetration: 'Bean Bp', vortexSpacing: '보텍스 간격', vortexDensity: '보텍스 밀도',
-    copper: '구리 안정화층', cuK: 'kCu', cuCp: 'cp,Cu', cuRho: 'ρCu (WF 근사)', provenance: '데이터 출처', missingFields: '보정에 필요한 미확보 항목',
-    modelNote: '모델 주의', modelNoteText: 'London/GL, Bean 임계상태, 현상론적 Jc, 집중정수 전기열 모델을 결합했다. 완전한 TDGL, 3차원 Maxwell FEM, 화학 반응속도, 시료 보정 자기부상 힘은 풀지 않는다.',
+    geometry: '형상·냉각·3D 장면', magneticHalfWidth: '자기 모델 반폭', tapeWidth: '도체 폭', scThickness: '초전도층 두께', copperThickness: 'Cu 안정화층 두께', length: '도체 길이', bathTemperature: '냉각조 온도', heatTransfer: '열전달 계수',
+    sampleRadius: '시료 반지름', sampleHeight: '시료 높이', magnetRadius: '자석 반지름', magnetHeight: '자석 높이', magnetGap: '자석-시료 간격', autoRotate3d: '3D 자동 회전', showFieldLines3d: '자기력선 표시', showVortices3d: '보텍스 표시',
+    advanced: '고급 재료 파라미터', lambda0: 'lambda 기준값', xi0: 'xi 기준값', jc0: 'Jc0', b0: 'Jc 자기장 스케일 B0', nValue: 'E-J 지수 n', anisotropy: '이방성 gamma', normalResistivity: '초전도층 정상저항률', scCp: '초전도층 비열',
+    lab3d: '3D 실험실', field: '자기장 / 상', vortices: '보텍스', transport: '수송', quench: '퀜치', pairing: '결합',
+    phase: '상태', scType: 'GL 분류', kappa: 'kappa', bc1: 'Bc1', bc: 'Bc', bc2: 'Bc2', penetration: 'lambda(T)', coherence: 'xi(T)', orderParameter: '|psi| 스케일', jc: 'Jc', ic: '추정 Ic', eField: '운전점 E', magnetization: 'Bean M', fullPenetration: 'Bean Bp', vortexSpacing: '보텍스 간격', vortexDensity: '보텍스 밀도',
+    copper: '구리 안정화층', cuK: 'kCu', cuCp: 'cp,Cu', cuRho: 'rhoCu (WF 근사)', provenance: '데이터 출처', missingFields: '보정에 필요한 미확보 항목',
+    levitation: '자기부상 / 3D', levForce: '휴리스틱 Fz', levStiffness: 'dF/dz', shieldFraction: '차폐 비율', gapField: '간격 자기장', pinningIndex: '피닝 지수',
+    modelNote: '모델 주의', modelNoteText: 'London/GL, Bean 임계상태, 현상론적 Jc, 집중정수 전기열 모델을 결합했다. 3D 실험실과 자기부상 힘은 정량 보정된 3차원 FEM 해석이 아니라 휴리스틱 시각화·엔지니어링 층이다.',
     dataLimits: '데이터·모델 한계', exportState: '상태 내보내기', importState: 'JSON 가져오기', language: 'EN',
     startQuench: '열 시뮬레이션 시작', pauseQuench: '일시정지', resetQuench: '열 시뮬레이션 초기화', quenchTime: '시뮬레이션 시간', conductorTemp: '도체 온도', powerPerLength: '단위길이당 줄 발열', currentSharing: '전류 분담',
-    pairingTitle: '전통적 EPC Tc 추정기', lambdaEpc: '전자-포논 λ', muStar: '쿨롱 μ*', omegaLog: 'ωlog (K)', estimatedTc: '추정 Tc', weakGap: '약결합 Δ0', pairingWarning: '단순화 McMillan–Allen–Dynes 식이다. 비전통·다중밴드·강상관 등 적용 범위 밖 계의 보편적 Tc 모델이 아니다.',
+    pairingTitle: '전통적 EPC Tc 추정기', lambdaEpc: '전자-포논 lambda', muStar: '쿨롱 mu*', omegaLog: 'omega_log (K)', estimatedTc: '추정 Tc', weakGap: '약결합 Delta0', pairingWarning: '단순화 McMillan-Allen-Dynes 식이다. 비전통·다중밴드·강상관 등 적용 범위 밖 계의 보편적 Tc 모델이 아니다.',
     benchmarkTitle: '저장소 Tc 비교표', sourceTitle: '이 앱이 직접 참조한 주요 출처', modelMatrixTitle: '연구 모델 범위',
     close: '닫기', statusReady: '보정 가능', statusNotReady: '탐색용 / 미완성', customTc: '비교표 Tc 적용', noOverride: 'Tc 덮어쓰기 안 함',
+    lab3dHint: '메인 캔버스에서 드래그하면 3D 장면을 회전할 수 있다. 자기부상 힘과 자기력선은 정량 보정치가 아닌 정성적 엔지니어링 추정이다.',
     fieldHint: '인가 자기장 슬라이더를 움직이거나 스윕을 실행할 수 있다. 혼합상 히스테리시스는 1차원 Bean 임계상태 근사를 사용한다.',
-    vortexHint: '보텍스 밀도는 평균 내부 Bean 자기장에 대해 |B|/Φ0로 계산한다. 코어 렌더링에서 ξ는 시각적 스케일로만 사용한다.',
-    transportHint: 'E = Ec(|J|/Jc)^n과 이방성을 포함한 현상론적 Jc(T,B,θ)를 사용한다.',
-    quenchHint: '단위길이 기준 0차원 열수지와 전류 분담 모델이다. NIST RRR100 Cu k(T), cp(T)는 공개 피팅의 4–300 K 범위에서 평가한다.',
+    vortexHint: '보텍스 밀도는 평균 내부 Bean 자기장에 대해 |B|/Phi0로 계산한다. 코어 렌더링에서 xi는 시각적 스케일로만 사용한다.',
+    transportHint: 'E = Ec(|J|/Jc)^n과 이방성을 포함한 현상론적 Jc(T,B,theta)를 사용한다.',
+    quenchHint: '단위길이 기준 0차원 열수지와 전류 분담 모델이다. NIST RRR100 Cu k(T), cp(T)는 공개 피팅의 4-300 K 범위에서 평가한다.',
     pairingHint: '미시적 결합 탐색 보조이며 거시적 자기장 해석기와 독립되어 있다.',
     meissner: '마이스너', mixed: '혼합상 / 보텍스', normal: '정상상', 'type-i':'제1종', 'type-ii':'제2종', borderline:'제1·2종 경계',
     sourceMeasured: '측정/문헌', sourceAssumed: '가정', sourceMixed: '혼합', custom: '사용자 지정',
-    footer: '정적 GitHub Pages 빌드 · 서버 없음 · 외부 런타임 의존성 없음'
+    footer: '정적 GitHub Pages 빌드 - 서버 없음 - 외부 런타임 의존성 없음',
+    yes: '켜짐', no: '꺼짐'
   }
 };
 
@@ -681,7 +840,10 @@ function css(name, fallback) {
 
 function base(ctx, w, h) {
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = css('--canvas-bg', '#081016');
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, css('--field-bg-top', '#0c1822'));
+  bg.addColorStop(1, css('--field-bg-bottom', '#081016'));
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 }
 
@@ -711,28 +873,298 @@ function fmt(value, digits = 3) {
   return value.toFixed(digits).replace(/\.?0+$/, '');
 }
 
+function formatForce(v) {
+  if (!Number.isFinite(v)) return 'N/A';
+  const a = Math.abs(v);
+  if (a >= 1) return `${fmt(v, 3)} N`;
+  if (a >= 1e-3) return `${fmt(v * 1e3, 2)} mN`;
+  return `${fmt(v * 1e6, 2)} µN`;
+}
+
+function drawAxes(ctx, box, xLabel, yLabel) {
+  const { x, y, w, h } = box;
+  ctx.strokeStyle = css('--grid', '#243440');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+  label(ctx, xLabel, x + w, y + h + 20, 'right', 16);
+  label(ctx, yLabel, x - 4, y - 12, 'left', 16);
+}
+
+function rad(deg) {
+  return deg * Math.PI / 180;
+}
+
+function makeCamera(w, h, scene) {
+  return {
+    yaw: rad(scene.yawDeg || -32),
+    pitch: rad(scene.pitchDeg || 18),
+    zoom: clamp(scene.zoom || 1, 0.5, 2.2),
+    cx: w * 0.5,
+    cy: h * 0.62,
+    perspective: Math.min(w, h) * 0.9
+  };
+}
+
+function transformPoint(p, camera) {
+  const cy = Math.cos(camera.yaw);
+  const sy = Math.sin(camera.yaw);
+  const cp = Math.cos(camera.pitch);
+  const sp = Math.sin(camera.pitch);
+  const x1 = p.x * cy - p.z * sy;
+  const z1 = p.x * sy + p.z * cy;
+  const y2 = p.y * cp - z1 * sp;
+  const z2 = p.y * sp + z1 * cp;
+  const depth = 34 + z2;
+  const scale = camera.zoom * camera.perspective / Math.max(6, depth);
+  return { x:x1, y:y2, z:z2, depth, sx:camera.cx + x1 * scale, sy:camera.cy - y2 * scale, scale };
+}
+
+function polyDepth(points, camera) {
+  let s = 0;
+  for (let i = 0; i < points.length; i++) s += transformPoint(points[i], camera).depth;
+  return s / Math.max(1, points.length);
+}
+
+function drawPolygon3D(ctx, camera, points, fill, stroke, lineWidth) {
+  if (!points || points.length < 3) return;
+  ctx.beginPath();
+  const first = transformPoint(points[0], camera);
+  ctx.moveTo(first.sx, first.sy);
+  for (let i = 1; i < points.length; i++) {
+    const p = transformPoint(points[i], camera);
+    ctx.lineTo(p.sx, p.sy);
+  }
+  ctx.closePath();
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth || 1;
+    ctx.stroke();
+  }
+}
+
+function drawPolyline3D(ctx, camera, points, stroke, lineWidth, alpha) {
+  if (!points || points.length < 2) return;
+  ctx.beginPath();
+  const first = transformPoint(points[0], camera);
+  ctx.moveTo(first.sx, first.sy);
+  for (let i = 1; i < points.length; i++) {
+    const p = transformPoint(points[i], camera);
+    ctx.lineTo(p.sx, p.sy);
+  }
+  ctx.globalAlpha = typeof alpha === 'number' ? alpha : 1;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = lineWidth || 1;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawCylinder3D(ctx, camera, options) {
+  const center = options.center;
+  const radius = Math.max(0.1, options.radius);
+  const height = Math.max(0.1, options.height);
+  const segments = options.segments || 28;
+  const sidePolys = [];
+  const top = [];
+  const bottom = [];
+  const yTop = center.y + height / 2;
+  const yBottom = center.y - height / 2;
+
+  for (let i = 0; i < segments; i++) {
+    const a = Math.PI * 2 * i / segments;
+    const x = center.x + radius * Math.cos(a);
+    const z = center.z + radius * Math.sin(a);
+    top.push({ x, y:yTop, z });
+    bottom.push({ x, y:yBottom, z });
+  }
+  for (let i = 0; i < segments; i++) {
+    const j = (i + 1) % segments;
+    const poly = [bottom[i], bottom[j], top[j], top[i]];
+    sidePolys.push({ depth:polyDepth(poly, camera), poly });
+  }
+  sidePolys.sort((a, b) => b.depth - a.depth);
+  for (let i = 0; i < sidePolys.length; i++) {
+    const tone = 0.8 + 0.2 * (i / Math.max(1, sidePolys.length - 1));
+    const fill = options.sideFill || css('--sample-top', '#152733');
+    ctx.globalAlpha = tone;
+    drawPolygon3D(ctx, camera, sidePolys[i].poly, fill, options.sideStroke || css('--border-strong', '#355263'), 0.8);
+  }
+  ctx.globalAlpha = 1;
+  drawPolygon3D(ctx, camera, bottom, options.bottomFill || options.sideFill || css('--sample-bottom', '#0d1b24'), null, 0);
+  drawPolygon3D(ctx, camera, top, options.topFill || options.sideFill || css('--sample-top', '#152733'), options.topStroke || css('--border-strong', '#355263'), 1.2);
+  return { top, bottom };
+}
+
+function drawGround(ctx, camera, y, width, depth) {
+  ctx.strokeStyle = css('--grid', '#243440');
+  ctx.lineWidth = 1;
+  const lines = [];
+  for (let x = -width; x <= width; x += width / 5) lines.push([{ x, y, z:-depth }, { x, y, z:depth }]);
+  for (let z = -depth; z <= depth; z += depth / 5) lines.push([{ x:-width, y, z }, { x:width, y, z }]);
+  lines.sort((a, b) => polyDepth(a, camera) - polyDepth(b, camera));
+  for (let i = 0; i < lines.length; i++) drawPolyline3D(ctx, camera, lines[i], css('--grid', '#243440'), 1, 0.6);
+}
+
+function arrow2D(ctx, x1, y1, x2, y2, color) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 10 * Math.cos(ang - Math.PI / 6), y2 - 10 * Math.sin(ang - Math.PI / 6));
+  ctx.lineTo(x2 - 10 * Math.cos(ang + Math.PI / 6), y2 - 10 * Math.sin(ang + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawCallout(ctx, x, y, title, value, color) {
+  const width = Math.max(160, Math.min(240, Math.max(title.length, value.length) * 7 + 38));
+  const height = 44;
+  roundedRect(ctx, x, y, width, height, 10);
+  ctx.fillStyle = 'rgba(8,16,22,0.88)';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  label(ctx, title, x + 12, y + 14, 'left', 13, css('--muted', '#91a0ad'));
+  label(ctx, value, x + 12, y + 30, 'left', 16, color);
+}
+
+function renderLab3DScene(canvas, { phase, fields, stateLabel, levitation, scene, geometry, experiment, orderAmplitude, avgB, vortexSpacingM }) {
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
+
+  const camera = makeCamera(w, h, scene);
+  const phaseColor = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
+  const fieldColor = experiment.appliedFieldT >= 0 ? css('--field', '#61d7ff') : css('--field-negative', '#ff9e64');
+  const sampleRadius = Math.max(3, experiment.sampleRadiusMm * 0.35);
+  const sampleHeight = Math.max(1.2, experiment.sampleHeightMm * 0.35);
+  const magnetRadius = Math.max(2, experiment.magnetRadiusMm * 0.35);
+  const magnetHeight = Math.max(1.2, experiment.magnetHeightMm * 0.35);
+  const gap = Math.max(1.2, experiment.magnetGapMm * 0.4);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  roundedRect(ctx, 14, 14, w - 28, h - 28, 16);
+  ctx.fill();
+
+  drawGround(ctx, camera, -sampleHeight / 2 - 6, 18, 18);
+
+  const sideFill = phase === 'normal' ? 'rgba(129,77,74,0.92)' : phase === 'mixed' ? 'rgba(88,76,48,0.94)' : 'rgba(26,74,83,0.94)';
+  const topFill = phase === 'normal' ? 'rgba(180,91,88,0.96)' : phase === 'mixed' ? 'rgba(191,154,70,0.96)' : 'rgba(86,206,188,0.92)';
+
+  const sample = drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:0, z:0 },
+    radius:sampleRadius,
+    height:sampleHeight,
+    sideFill,
+    bottomFill:'rgba(8,18,24,0.95)',
+    topFill,
+    topStroke:phaseColor,
+    sideStroke:'rgba(255,255,255,0.06)'
+  });
+
+  const magnetCenterY = sampleHeight / 2 + gap + magnetHeight / 2;
+  drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:magnetCenterY, z:0 },
+    radius:magnetRadius,
+    height:magnetHeight,
+    sideFill:'rgba(159,52,89,0.95)',
+    bottomFill:'rgba(104,24,50,0.95)',
+    topFill:'rgba(214,88,124,0.98)',
+    topStroke:'rgba(255,194,209,0.95)',
+    sideStroke:'rgba(255,255,255,0.06)'
+  });
+
+  if (experiment.showFieldLines3d) {
+    const lines = [];
+    const lineCount = 7;
+    for (let i = 0; i < lineCount; i++) {
+      const t = -1 + 2 * i / (lineCount - 1);
+      const x = t * magnetRadius * 0.85;
+      const bend = (phase === 'meissner' ? 1.4 : phase === 'mixed' ? 0.8 : 0.15) * (1 - Math.abs(t) * 0.5);
+      const z = (i % 2 ? 1 : -1) * magnetRadius * 0.12;
+      lines.push([
+        { x, y:magnetCenterY + magnetHeight * 0.8, z },
+        { x, y:magnetCenterY + magnetHeight * 0.3, z },
+        { x: x * (1 + 0.12 * bend), y:sampleHeight / 2 + gap * 0.75, z: z + bend * 0.6 },
+        { x: x * (1 + 0.45 * bend), y:sampleHeight / 2 + gap * 0.18, z: z + bend * 1.3 },
+        { x: x * (1 + 0.6 * bend), y:-sampleHeight * 0.05, z: z + bend * 1.9 }
+      ]);
+    }
+    for (let i = 0; i < lines.length; i++) drawPolyline3D(ctx, camera, lines[i], fieldColor, 1.6, 0.86);
+  }
+
+  if (experiment.showVortices3d && phase === 'mixed' && Number.isFinite(vortexSpacingM)) {
+    const count = Math.min(14, Math.max(3, Math.round(sampleRadius / 1.6)));
+    for (let i = 0; i < count; i++) {
+      const ang = 2 * Math.PI * i / count;
+      const rr = sampleRadius * (0.18 + 0.72 * ((i % 4) / 4));
+      const p1 = { x:Math.cos(ang) * rr, y:sampleHeight * 0.42, z:Math.sin(ang) * rr };
+      const p2 = { x:Math.cos(ang) * rr, y:-sampleHeight * 0.42, z:Math.sin(ang) * rr };
+      drawPolyline3D(ctx, camera, [p1, p2], css('--warning', '#ffcc66'), 1.3, 0.9);
+    }
+  }
+
+  const pTop = transformPoint({ x:0, y:sampleHeight / 2, z:0 }, camera);
+  const pBottom = transformPoint({ x:0, y:-sampleHeight / 2, z:0 }, camera);
+  const pMag = transformPoint({ x:0, y:magnetCenterY, z:0 }, camera);
+  arrow2D(ctx, pTop.sx + 58, pTop.sy + 34, pTop.sx + 58, pTop.sy - 46, phaseColor);
+  label(ctx, 'Fz', pTop.sx + 70, pTop.sy - 51, 'left', 16, phaseColor);
+  arrow2D(ctx, pTop.sx + 85, pTop.sy - 42, pTop.sx + 85, pTop.sy + 30, css('--muted', '#91a0ad'));
+  label(ctx, 'g', pTop.sx + 97, pTop.sy + 34, 'left', 16, css('--muted', '#91a0ad'));
+
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = css('--muted-2', '#647583');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pTop.sx - 46, pTop.sy);
+  ctx.lineTo(pMag.sx - 46, pMag.sy + 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx, `${fmt(experiment.magnetGapMm, 2)} mm gap`, pMag.sx - 52, (pTop.sy + pMag.sy) / 2, 'right', 14, css('--muted', '#91a0ad'));
+
+  label(ctx, stateLabel.toUpperCase(), 22, 24, 'left', 18, phaseColor);
+  label(ctx, `Bgap ${fmt(levitation.gapFieldT, 3)} T | shielding ${fmt(levitation.shielding * 100, 1)}% | pinning ${fmt(levitation.pinning, 2)}`, 22, 48, 'left', 15, css('--text', '#e8f0f6'));
+  drawCallout(ctx, 20, h - 72, 'Heuristic levitation force', formatForce(levitation.forceN), phaseColor);
+  drawCallout(ctx, w - 218, h - 72, 'Mean internal field', `${fmt(avgB, 3)} T`, fieldColor);
+  drawCallout(ctx, w - 218, 20, 'Vortex spacing', Number.isFinite(vortexSpacingM) ? `${fmt(vortexSpacingM * 1e9, 1)} nm` : 'N/A', css('--warning', '#ffcc66'));
+  drawCallout(ctx, 20, 66, 'GL summary', `${fields.type.toUpperCase()} | Bc2 ${fmt(fields.bc2T, 2)} T`, css('--accent', '#8bdcff'));
+  label(ctx, orderAmplitude > 0 ? `order amplitude ${fmt(orderAmplitude, 3)}` : 'order amplitude 0', 22, 95, 'left', 14, css('--muted', '#91a0ad'));
+  label(ctx, '3-D scene is qualitative, not a calibrated FEM model.', 22, h - 24, 'left', 14, css('--muted-2', '#647583'));
+  label(ctx, 'Drag to orbit - wheel to zoom - double-click to reset camera', w - 20, h - 24, 'right', 14, css('--muted-2', '#647583'));
+}
+
 function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fields, stateLabel, magnetizationApm, fullPenetrationT }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const pad = Math.max(28, w * 0.055);
   const sx = pad;
-  const sy = h * 0.21;
+  const sy = h * 0.18;
   const sw = w - 2 * pad;
-  const sh = h * 0.52;
+  const sh = h * 0.48;
 
-  const outerGradient = ctx.createLinearGradient(0, 0, 0, h);
-  outerGradient.addColorStop(0, css('--field-bg-top', '#0c1822'));
-  outerGradient.addColorStop(1, css('--field-bg-bottom', '#081016'));
-  ctx.fillStyle = outerGradient;
-  ctx.fillRect(0, 0, w, h);
-
-  // Ambient field guides.
   const fieldColor = css('--field', '#61d7ff');
   ctx.strokeStyle = fieldColor;
   ctx.globalAlpha = 0.14;
   ctx.lineWidth = 1;
   const lineStep = Math.max(18, sw / 26);
   for (let x = sx % lineStep; x < w; x += lineStep) {
-    ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, h - 18); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, 18);
+    ctx.lineTo(x, h - 18);
+    ctx.stroke();
   }
   ctx.globalAlpha = 1;
 
@@ -740,10 +1172,19 @@ function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fields, s
   const sampleGrad = ctx.createLinearGradient(sx, sy, sx, sy + sh);
   sampleGrad.addColorStop(0, css('--sample-top', '#152733'));
   sampleGrad.addColorStop(1, css('--sample-bottom', '#0d1b24'));
-  ctx.fillStyle = sampleGrad; ctx.fill();
-  ctx.strokeStyle = css('--border-strong', '#355263'); ctx.lineWidth = 1.25; ctx.stroke();
+  ctx.fillStyle = sampleGrad;
+  ctx.fill();
+  ctx.strokeStyle = css('--border-strong', '#355263');
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
 
-  const maxB = Math.max(1e-12, Math.abs(BappT), ...profile.map(p => Math.abs(p.bT)));
+  const layerY = sy + sh * 0.68;
+  ctx.fillStyle = 'rgba(173, 217, 255, 0.10)';
+  roundedRect(ctx, sx + 18, layerY, sw - 36, 16, 8);
+  ctx.fill();
+  label(ctx, 'sample cross-section', sx + sw - 18, layerY - 12, 'right', 13);
+
+  const maxB = Math.max(1e-12, Math.abs(BappT), ...profile.map((p) => Math.abs(p.bT)));
   const stride = Math.max(1, Math.floor(profile.length / Math.max(20, Math.floor(sw / 13))));
   for (let i = 0; i < profile.length; i += stride) {
     const p = profile[i];
@@ -758,33 +1199,38 @@ function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fields, s
     ctx.moveTo(x, sy + 8);
     ctx.lineTo(x, sy + sh - 8);
     ctx.stroke();
-    // Arrow head.
     const dir = p.bT >= 0 ? 1 : -1;
     const ay = sy + sh * 0.46;
     ctx.beginPath();
     ctx.moveTo(x, ay + dir * 7);
     ctx.lineTo(x - 3.5, ay);
     ctx.lineTo(x + 3.5, ay);
-    ctx.closePath(); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+    ctx.closePath();
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  // State core annotation.
   const stateColor = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
   ctx.fillStyle = stateColor;
   ctx.globalAlpha = 0.08;
-  roundedRect(ctx, sx + sw * 0.33, sy + sh * 0.34, sw * 0.34, sh * 0.32, 12); ctx.fill();
+  roundedRect(ctx, sx + sw * 0.33, sy + sh * 0.34, sw * 0.34, sh * 0.32, 12);
+  ctx.fill();
   ctx.globalAlpha = 1;
   label(ctx, stateLabel.toUpperCase(), sx + sw / 2, sy + sh / 2, 'center', Math.min(20, Math.max(15, w / 42)), stateColor);
 
-  // Profile plot strip.
-  const py = sy + sh + 36;
+  const py = sy + sh + 42;
   const ph = Math.max(48, h - py - 28);
   const zeroY = py + ph / 2;
-  ctx.strokeStyle = css('--grid', '#243440'); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(sx, zeroY); ctx.lineTo(sx + sw, zeroY); ctx.stroke();
+  ctx.strokeStyle = css('--grid', '#243440');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx, zeroY);
+  ctx.lineTo(sx + sw, zeroY);
+  ctx.stroke();
   const plotMax = maxB;
-  ctx.strokeStyle = fieldColor; ctx.lineWidth = 2;
+  ctx.strokeStyle = fieldColor;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   profile.forEach((p, i) => {
     const xNorm = (p.xM + halfWidthM) / (2 * halfWidthM || 1);
@@ -793,21 +1239,24 @@ function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fields, s
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
-  label(ctx, `B(x) · Bapp ${fmt(BappT)} T`, sx, py - 10, 'left', 15);
-  label(ctx, `M ${fmt(magnetizationApm)} A/m · Bp ${fmt(fullPenetrationT)} T`, sx + sw, py - 10, 'right', 15);
-  label(ctx, `−${fmt(halfWidthM * 1e3, 2)} mm`, sx, py + ph + 10, 'left', 16);
+  label(ctx, `B(x) - Bapp ${fmt(BappT)} T`, sx, py - 10, 'left', 15);
+  label(ctx, `M ${fmt(magnetizationApm)} A/m - Bp ${fmt(fullPenetrationT)} T - Bc1 ${fmt(fields.bc1T)} T`, sx + sw, py - 10, 'right', 15);
+  label(ctx, `-${fmt(halfWidthM * 1e3, 2)} mm`, sx, py + ph + 10, 'left', 16);
   label(ctx, `+${fmt(halfWidthM * 1e3, 2)} mm`, sx + sw, py + ph + 10, 'right', 16);
 }
 
 function renderVortexScene(canvas, { BavgT, fovUm, xiM, phase, orderAmplitude }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const pad = Math.max(28, Math.min(w, h) * 0.08);
   const size = Math.min(w - 2 * pad, h - 2 * pad);
   const x0 = (w - size) / 2;
   const y0 = (h - size) / 2;
   roundedRect(ctx, x0, y0, size, size, 14);
-  ctx.fillStyle = css('--sample-bottom', '#0d1b24'); ctx.fill();
-  ctx.strokeStyle = css('--border-strong', '#355263'); ctx.stroke();
+  ctx.fillStyle = css('--sample-bottom', '#0d1b24');
+  ctx.fill();
+  ctx.strokeStyle = css('--border-strong', '#355263');
+  ctx.stroke();
 
   const fovM = Math.max(1e-9, fovUm * 1e-6);
   const spacingM = triangularVortexSpacing(BavgT);
@@ -819,7 +1268,8 @@ function renderVortexScene(canvas, { BavgT, fovUm, xiM, phase, orderAmplitude })
   if (phase !== 'mixed' || !Number.isFinite(spacingM) || expected < 0.03) {
     ctx.globalAlpha = 0.12 + 0.1 * orderAmplitude;
     ctx.fillStyle = css('--success', '#65e0ad');
-    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12); ctx.fill();
+    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12);
+    ctx.fill();
     ctx.globalAlpha = 1;
     label(ctx, phase === 'normal' ? 'NO COHERENT VORTEX LATTICE' : 'MEISSNER / NO BULK VORTICES', w / 2, h / 2, 'center', 16, phase === 'normal' ? css('--danger', '#ff756d') : css('--success', '#65e0ad'));
   } else {
@@ -840,51 +1290,58 @@ function renderVortexScene(canvas, { BavgT, fovUm, xiM, phase, orderAmplitude })
         grad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.globalAlpha = 0.42;
         ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.arc(x, y, corePx * 2.8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, corePx * 2.8, 0, Math.PI * 2);
+        ctx.fill();
         ctx.globalAlpha = 1;
         ctx.fillStyle = signColor;
-        ctx.beginPath(); ctx.arc(x, y, Math.max(1.4, corePx * 0.38), 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1.4, corePx * 0.38), 0, Math.PI * 2);
+        ctx.fill();
         count++;
       }
     }
-    // faint order-parameter overlay
     ctx.globalAlpha = 0.05 + 0.08 * orderAmplitude;
     ctx.fillStyle = css('--success', '#65e0ad');
-    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12); ctx.fill();
+    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12);
+    ctx.fill();
     ctx.globalAlpha = 1;
-    label(ctx, `rendered ≤ ${count} · expected ${fmt(expected, 1)}`, x0 + 10, y0 + size - 14, 'left', 16);
+    label(ctx, `rendered <= ${count} - expected ${fmt(expected, 1)}`, x0 + 10, y0 + size - 14, 'left', 16);
   }
 
   label(ctx, `${fmt(fovUm, 2)} µm`, x0 + size, y0 + size + 18, 'right', 15);
-  label(ctx, `a△ ${Number.isFinite(spacingM) ? fmt(spacingM * 1e9, 1) + ' nm' : 'N/A'} · nᵥ ${fmt(density)} m⁻²`, x0, y0 - 14, 'left', 15);
-  label(ctx, `Φ₀ = ${PHI0.toExponential(4)} Wb`, x0 + size, y0 - 14, 'right', 15);
-}
-
-function drawAxes(ctx, box, xLabel, yLabel) {
-  const { x, y, w, h } = box;
-  ctx.strokeStyle = css('--grid', '#243440'); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();
-  label(ctx, xLabel, x + w, y + h + 20, 'right', 16);
-  label(ctx, yLabel, x - 4, y - 12, 'left', 16);
+  label(ctx, `a_triangle ${Number.isFinite(spacingM) ? fmt(spacingM * 1e9, 1) + ' nm' : 'N/A'} - nv ${fmt(density)} m^-2`, x0, y0 - 14, 'left', 15);
+  label(ctx, `Phi0 = ${PHI0.toExponential(4)} Wb`, x0 + size, y0 - 14, 'right', 15);
 }
 
 function renderTransportScene(canvas, { Jc, nValue, ec, operatingJ, normalResistivity, normal }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const box = { x:62, y:28, w:w - 88, h:h - 72 };
   drawAxes(ctx, box, 'J / Jc', 'E [V/m]');
-  const xmin = -2, xmax = 1.25; // log10 J/Jc
-  const ymin = -12, ymax = 2;
-  const mapX = v => box.x + (v - xmin) / (xmax - xmin) * box.w;
-  const mapY = v => box.y + box.h - (v - ymin) / (ymax - ymin) * box.h;
+  const xmin = -2;
+  const xmax = 1.25;
+  const ymin = -12;
+  const ymax = 2;
+  const mapX = (v) => box.x + (v - xmin) / (xmax - xmin) * box.w;
+  const mapY = (v) => box.y + box.h - (v - ymin) / (ymax - ymin) * box.h;
   for (let p = -12; p <= 2; p += 2) {
-    const yy = mapY(p); ctx.strokeStyle = css('--grid', '#243440'); ctx.globalAlpha = 0.55;
-    ctx.beginPath(); ctx.moveTo(box.x, yy); ctx.lineTo(box.x + box.w, yy); ctx.stroke();
-    ctx.globalAlpha = 1; label(ctx, `1e${p}`, box.x - 8, yy, 'right', 14);
+    const yy = mapY(p);
+    ctx.strokeStyle = css('--grid', '#243440');
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(box.x, yy);
+    ctx.lineTo(box.x + box.w, yy);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    label(ctx, `1e${p}`, box.x - 8, yy, 'right', 14);
   }
-  [-2,-1,0,1].forEach(p => label(ctx, `1e${p}`, mapX(p), box.y + box.h + 10, 'center', 14));
+  [-2, -1, 0, 1].forEach((p) => label(ctx, `1e${p}`, mapX(p), box.y + box.h + 10, 'center', 14));
 
   const accent = css('--field', '#61d7ff');
-  ctx.strokeStyle = accent; ctx.lineWidth = 2.3; ctx.beginPath();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2.3;
+  ctx.beginPath();
   let started = false;
   for (let i = 0; i <= 260; i++) {
     const lx = xmin + (xmax - xmin) * i / 260;
@@ -894,93 +1351,208 @@ function renderTransportScene(canvas, { Jc, nValue, ec, operatingJ, normalResist
     else E = electricFieldFromJ(Jc * ratio, Jc, nValue, ec);
     const ly = Math.log10(Math.max(1e-20, Math.abs(E)));
     if (ly < ymin - 1 || ly > ymax + 1) continue;
-    const px = mapX(lx), py = mapY(clamp(ly, ymin, ymax));
+    const px = mapX(lx);
+    const py = mapY(clamp(ly, ymin, ymax));
     if (!started) { ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
   }
   ctx.stroke();
 
   const ecLog = Math.log10(ec);
-  ctx.setLineDash([5,5]); ctx.strokeStyle = css('--warning', '#ffcc66'); ctx.globalAlpha = 0.7;
-  ctx.beginPath(); ctx.moveTo(box.x, mapY(ecLog)); ctx.lineTo(box.x + box.w, mapY(ecLog)); ctx.stroke();
-  ctx.setLineDash([]); ctx.globalAlpha = 1; label(ctx, 'Ec', box.x + box.w - 4, mapY(ecLog) - 9, 'right', 14, css('--warning', '#ffcc66'));
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = css('--warning', '#ffcc66');
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(box.x, mapY(ecLog));
+  ctx.lineTo(box.x + box.w, mapY(ecLog));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  label(ctx, 'Ec', box.x + box.w - 4, mapY(ecLog) - 9, 'right', 14, css('--warning', '#ffcc66'));
 
   if (Jc > 0 && operatingJ > 0) {
     const ratio = operatingJ / Jc;
     const Eop = normal ? normalResistivity * operatingJ : electricFieldFromJ(operatingJ, Jc, nValue, ec);
     const px = mapX(clamp(Math.log10(Math.max(1e-9, ratio)), xmin, xmax));
     const py = mapY(clamp(Math.log10(Math.max(1e-20, Math.abs(Eop))), ymin, ymax));
-    ctx.fillStyle = css('--danger', '#ff756d'); ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
-    label(ctx, `op · J/Jc ${fmt(ratio,2)}`, px + 8, py - 10, 'left', 16, css('--text', '#e8f0f6'));
+    ctx.fillStyle = css('--danger', '#ff756d');
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    label(ctx, `op - J/Jc ${fmt(ratio, 2)}`, px + 8, py - 10, 'left', 16, css('--text', '#e8f0f6'));
   }
 }
 
 function renderThermalScene(canvas, { samples, tcK, bathK }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const box = { x:58, y:28, w:w - 84, h:h - 72 };
   drawAxes(ctx, box, 't [s]', 'T [K]');
   const data = samples && samples.length ? samples : [{ t:0, temperatureK:bathK }];
   const tMin = data[0].t;
   const tMax = Math.max(tMin + 0.1, data[data.length - 1].t);
-  let yMin = Math.min(bathK, ...data.map(d => d.temperatureK));
-  let yMax = Math.max(tcK, bathK + 1, ...data.map(d => d.temperatureK));
-  const span = Math.max(1, yMax - yMin); yMin = Math.max(0, yMin - 0.08 * span); yMax += 0.12 * span;
-  const mapX = v => box.x + (v - tMin) / (tMax - tMin) * box.w;
-  const mapY = v => box.y + box.h - (v - yMin) / (yMax - yMin) * box.h;
+  let yMin = Math.min(bathK, ...data.map((d) => d.temperatureK));
+  let yMax = Math.max(tcK, bathK + 1, ...data.map((d) => d.temperatureK));
+  const span = Math.max(1, yMax - yMin);
+  yMin = Math.max(0, yMin - 0.08 * span);
+  yMax += 0.12 * span;
+  const mapX = (v) => box.x + (v - tMin) / (tMax - tMin) * box.w;
+  const mapY = (v) => box.y + box.h - (v - yMin) / (yMax - yMin) * box.h;
 
   const drawRef = (value, text, color) => {
     if (value < yMin || value > yMax) return;
-    ctx.setLineDash([5,5]); ctx.strokeStyle = color; ctx.globalAlpha = 0.65;
-    ctx.beginPath(); ctx.moveTo(box.x, mapY(value)); ctx.lineTo(box.x + box.w, mapY(value)); ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha = 1; label(ctx, text, box.x + box.w - 4, mapY(value) - 9, 'right', 14, color);
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    ctx.moveTo(box.x, mapY(value));
+    ctx.lineTo(box.x + box.w, mapY(value));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    label(ctx, text, box.x + box.w - 4, mapY(value) - 9, 'right', 14, color);
   };
   drawRef(tcK, 'Tc', css('--danger', '#ff756d'));
   drawRef(bathK, 'Tbath', css('--field', '#61d7ff'));
 
-  ctx.strokeStyle = css('--warning', '#ffcc66'); ctx.lineWidth = 2.4; ctx.beginPath();
-  data.forEach((d, i) => { const px = mapX(d.t), py = mapY(d.temperatureK); if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+  ctx.strokeStyle = css('--warning', '#ffcc66');
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const px = mapX(d.t);
+    const py = mapY(d.temperatureK);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
   ctx.stroke();
-  label(ctx, `${fmt(tMax - tMin,2)} s window`, box.x + box.w, box.y + box.h + 10, 'right', 14);
-  label(ctx, `${fmt(yMin,1)}–${fmt(yMax,1)} K`, box.x, box.y - 12, 'left', 14);
+  label(ctx, `${fmt(tMax - tMin, 2)} s window`, box.x + box.w, box.y + box.h + 10, 'right', 14);
+  label(ctx, `${fmt(yMin, 1)}-${fmt(yMax, 1)} K`, box.x, box.y - 12, 'left', 14);
 }
 
 function renderPhaseScene(canvas, { params, temperatureK, BabsT }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const box = { x:62, y:30, w:w - 88, h:h - 76 };
   drawAxes(ctx, box, 'T / Tc', 'B [T]');
   const lambda0M = params.lambda0Nm * 1e-9;
   const xi0M = params.xi0Nm * 1e-9;
   const f0 = criticalFields({ lambdaM:lambda0M, xiM:xi0M, T:0, Tc:params.tcK });
   const yMax = Math.max(0.05, Math.min(120, f0.bc2T * 1.12 || f0.bcT * 1.3 || 1));
-  const mapX = t => box.x + t / 1.08 * box.w;
-  const mapY = b => box.y + box.h - clamp(b / yMax, 0, 1) * box.h;
+  const mapX = (t) => box.x + t / 1.08 * box.w;
+  const mapY = (b) => box.y + box.h - clamp(b / yMax, 0, 1) * box.h;
 
   const lines = { bc1:[], bc2:[], bc:[] };
-  for (let i=0;i<=180;i++) {
+  for (let i = 0; i <= 180; i++) {
     const tr = 0.995 * i / 180;
     const T = tr * params.tcK;
     const l = lambdaAtTemperature(lambda0M, T, params.tcK);
     const x = xiAtTemperature(xi0M, T, params.tcK);
     const f = criticalFields({ lambdaM:l, xiM:x, T, Tc:params.tcK });
-    lines.bc1.push([tr, f.bc1T]); lines.bc2.push([tr, f.bc2T]); lines.bc.push([tr, f.bcT]);
+    lines.bc1.push([tr, f.bc1T]);
+    lines.bc2.push([tr, f.bc2T]);
+    lines.bc.push([tr, f.bcT]);
   }
-  const draw = (arr, color, width, dash=[]) => {
-    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash); ctx.beginPath();
-    arr.forEach(([tx,b],i)=>{ const px=mapX(tx), py=mapY(b); if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py); }); ctx.stroke(); ctx.setLineDash([]);
+  const draw = (arr, color, width, dash) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    arr.forEach(([tx, b], i) => {
+      const px = mapX(tx);
+      const py = mapY(b);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
   };
   if (f0.type === 'type-i' || f0.type === 'borderline') {
     draw(lines.bc, css('--warning', '#ffcc66'), 2.2);
-    label(ctx, 'Bc', mapX(0.1), mapY(lines.bc[Math.floor(lines.bc.length*0.1)][1]) - 10, 'left', 16, css('--warning', '#ffcc66'));
+    label(ctx, 'Bc', mapX(0.1), mapY(lines.bc[Math.floor(lines.bc.length * 0.1)][1]) - 10, 'left', 16, css('--warning', '#ffcc66'));
   } else {
     draw(lines.bc2, css('--danger', '#ff756d'), 2.2);
-    draw(lines.bc1, css('--field', '#61d7ff'), 1.8, [5,4]);
-    label(ctx, 'Bc2', mapX(0.08), mapY(lines.bc2[Math.floor(lines.bc2.length*0.08)][1]) - 10, 'left', 16, css('--danger', '#ff756d'));
-    label(ctx, 'Bc1', mapX(0.2), mapY(lines.bc1[Math.floor(lines.bc1.length*0.2)][1]) - 10, 'left', 16, css('--field', '#61d7ff'));
+    draw(lines.bc1, css('--field', '#61d7ff'), 1.8, [5, 4]);
+    label(ctx, 'Bc2', mapX(0.08), mapY(lines.bc2[Math.floor(lines.bc2.length * 0.08)][1]) - 10, 'left', 16, css('--danger', '#ff756d'));
+    label(ctx, 'Bc1', mapX(0.2), mapY(lines.bc1[Math.floor(lines.bc1.length * 0.2)][1]) - 10, 'left', 16, css('--field', '#61d7ff'));
   }
   const tx = clamp(temperatureK / params.tcK, 0, 1.08);
-  const px = mapX(tx), py = mapY(BabsT);
-  ctx.fillStyle = css('--text', '#e8f0f6'); ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+  const px = mapX(tx);
+  const py = mapY(BabsT);
+  ctx.fillStyle = css('--text', '#e8f0f6');
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
   label(ctx, 'operating point', px + 8, py - 10, 'left', 14, css('--text', '#e8f0f6'));
   label(ctx, `B scale max ${fmt(yMax)} T`, box.x + box.w, box.y - 12, 'right', 14);
+}
+
+function renderLevitationScene(canvas, { experiment, phase, lambdaM, orderAmplitude, jc, BappT }) {
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
+  const box = { x:58, y:28, w:w - 84, h:h - 72 };
+  drawAxes(ctx, box, 'gap [mm]', 'Fz [N]');
+  const maxGapMm = Math.max(8, experiment.magnetGapMm * 2.8);
+  const samples = [];
+  let ymax = 0;
+  for (let i = 0; i <= 90; i++) {
+    const gapMm = 0.2 + (maxGapMm - 0.2) * i / 90;
+    const lev = levitationEstimate({
+      phase,
+      BappT,
+      radiusM:experiment.sampleRadiusMm * 1e-3,
+      thicknessM:experiment.sampleHeightMm * 1e-3,
+      gapM:gapMm * 1e-3,
+      magnetRadiusM:experiment.magnetRadiusMm * 1e-3,
+      magnetHeightM:experiment.magnetHeightMm * 1e-3,
+      lambdaM,
+      orderAmplitude,
+      jcAm2:jc
+    });
+    ymax = Math.max(ymax, lev.forceN);
+    samples.push({ gapMm, forceN:lev.forceN });
+  }
+  ymax = Math.max(1e-6, ymax * 1.1);
+  const mapX = (v) => box.x + v / maxGapMm * box.w;
+  const mapY = (v) => box.y + box.h - v / ymax * box.h;
+
+  for (let i = 0; i <= 4; i++) {
+    const yy = box.y + box.h - i / 4 * box.h;
+    ctx.strokeStyle = css('--grid', '#243440');
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(box.x, yy);
+    ctx.lineTo(box.x + box.w, yy);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    label(ctx, fmt(ymax * i / 4, 3), box.x - 8, yy, 'right', 13);
+  }
+  ctx.strokeStyle = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  samples.forEach((d, i) => {
+    const px = mapX(d.gapMm);
+    const py = mapY(d.forceN);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  const current = levitationEstimate({
+    phase,
+    BappT,
+    radiusM:experiment.sampleRadiusMm * 1e-3,
+    thicknessM:experiment.sampleHeightMm * 1e-3,
+    gapM:experiment.magnetGapMm * 1e-3,
+    magnetRadiusM:experiment.magnetRadiusMm * 1e-3,
+    magnetHeightM:experiment.magnetHeightMm * 1e-3,
+    lambdaM,
+    orderAmplitude,
+    jcAm2:jc
+  });
+  const px = mapX(experiment.magnetGapMm);
+  const py = mapY(current.forceN);
+  ctx.fillStyle = css('--text', '#e8f0f6');
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
+  label(ctx, `${fmt(experiment.magnetGapMm, 2)} mm / ${formatForce(current.forceN)}`, px + 8, py - 10, 'left', 14, css('--text', '#e8f0f6'));
+  label(ctx, `magnetic pressure approx. p = B^2 / (2mu0) * shielding`, box.x, box.y - 12, 'left', 13, css('--muted', '#91a0ad'));
 }
 
 
@@ -994,17 +1566,18 @@ const state = {
   experiment: cloneParams(DEFAULT_EXPERIMENT),
   params: cloneParams(MATERIAL_PRESETS[0].params),
   presetId: MATERIAL_PRESETS[0].id,
-  activeView: 'field',
+  activeView: 'lab3d',
   beanActivated: false,
   sweepRunning: false,
   sweepDirection: 1,
   pairing: { lambdaEpc:1.0, muStar:0.10, omegaLogK:300 },
+  scene: { yawDeg:-32, pitchDeg:18, zoom:1, dragging:false, pointerId:null, lastX:0, lastY:0 },
   dirty: true,
   lastFrame: (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now()
 };
 
 function preset() {
-  return MATERIAL_PRESETS.find(p => p.id === state.presetId) || MATERIAL_PRESETS[0];
+  return MATERIAL_PRESETS.find((p) => p.id === state.presetId) || MATERIAL_PRESETS[0];
 }
 
 function cloneParams(p) { return JSON.parse(JSON.stringify(p)); }
@@ -1012,6 +1585,10 @@ function cloneParams(p) { return JSON.parse(JSON.stringify(p)); }
 function numberOrFallback(v, fallback) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function formatNumber(v, digits = 3) {
@@ -1045,6 +1622,26 @@ function formatCurrentDensity(v) {
   return `${formatNumber(v, 3)} A/m²`;
 }
 
+function formatForce(v) {
+  if (!Number.isFinite(v)) return 'N/A';
+  const a = Math.abs(v);
+  if (a >= 1) return `${formatNumber(v, 3)} N`;
+  if (a >= 1e-3) return `${formatNumber(v * 1e3, 2)} mN`;
+  return `${formatNumber(v * 1e6, 2)} µN`;
+}
+
+function formatStiffness(v) {
+  if (!Number.isFinite(v)) return 'N/A';
+  const a = Math.abs(v);
+  if (a >= 1000) return `${formatNumber(v / 1000, 2)} kN/m`;
+  if (a >= 1) return `${formatNumber(v, 2)} N/m`;
+  return `${formatNumber(v * 1e3, 2)} mN/m`;
+}
+
+function formatPercent(v) {
+  return Number.isFinite(v) ? `${formatNumber(v * 100, 1)} %` : 'N/A';
+}
+
 function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
 function setValue(id, value) { const el = $(id); if (el) el.value = String(value); }
@@ -1067,6 +1664,14 @@ function updateAllInputs() {
   setValue('lengthCm', state.experiment.lengthCm);
   setValue('bathTemperatureK', state.experiment.bathTemperatureK);
   setValue('heatTransfer', state.experiment.heatTransferWm2K);
+  setValue('sampleRadiusMm', state.experiment.sampleRadiusMm);
+  setValue('sampleHeightMm', state.experiment.sampleHeightMm);
+  setValue('magnetRadiusMm', state.experiment.magnetRadiusMm);
+  setValue('magnetHeightMm', state.experiment.magnetHeightMm);
+  setValue('magnetGapMm', state.experiment.magnetGapMm);
+  setValue('autoRotate3d', state.experiment.autoRotate3d ? '1' : '0');
+  setValue('showFieldLines3d', state.experiment.showFieldLines3d ? '1' : '0');
+  setValue('showVortices3d', state.experiment.showVortices3d ? '1' : '0');
   setValue('sweepAmplitude', state.experiment.sweepAmplitudeT);
   setValue('sweepRate', state.experiment.sweepRateTPerS);
   setValue('modelMode', state.experiment.modelMode);
@@ -1085,10 +1690,12 @@ function updateAllInputs() {
 }
 
 function loadPreset(id) {
-  const p = MATERIAL_PRESETS.find(x => x.id === id) || MATERIAL_PRESETS[0];
+  const p = MATERIAL_PRESETS.find((x) => x.id === id) || MATERIAL_PRESETS[0];
   state.presetId = p.id;
   state.params = cloneParams(p.params);
-  state.experiment.temperatureK = Math.min(state.params.tcK * 0.84, p.id.startsWith('nb') ? 4.2 : 77);
+  if (p.id.includes('nb')) state.experiment.temperatureK = 4.2;
+  else if (p.id.includes('mgb2')) state.experiment.temperatureK = 20;
+  else state.experiment.temperatureK = Math.min(state.params.tcK * 0.84, 77);
   state.experiment.bathTemperatureK = state.experiment.temperatureK;
   state.beanActivated = false;
   bean.reset(0);
@@ -1137,25 +1744,39 @@ function computeSnapshot() {
     bean.reset(0);
   }
 
-  const avgB = profile.reduce((s,p)=>s+p.bT,0) / Math.max(1, profile.length);
+  const avgB = profile.reduce((s, p) => s + p.bT, 0) / Math.max(1, profile.length);
   const g = geometry();
   const icA = estimateIcA(jc, g.widthM, g.scThicknessM);
   const jOp = state.experiment.currentA / Math.max(1e-18, g.widthM * g.scThicknessM);
   const eOp = phase === 'normal' ? state.params.normalResistivityOhmM * jOp : (jc > 0 ? electricFieldFromJ(jOp, jc, state.params.nValue, DEFAULT_EC) : Infinity);
   const sharing = currentSharing({ currentA:state.experiment.currentA, T, BabsT:Babs, angleDeg:state.experiment.fieldAngleDeg, params:state.params, geometry:g, rrr:state.experiment.copperRrr });
   const cuT = Math.max(4, Math.min(300, T));
+  const orderAmplitude = orderParameterAmplitude(T, state.params.tcK);
+  const levitation = levitationEstimate({
+    phase,
+    BappT:B,
+    radiusM:state.experiment.sampleRadiusMm * 1e-3,
+    thicknessM:state.experiment.sampleHeightMm * 1e-3,
+    gapM:state.experiment.magnetGapMm * 1e-3,
+    magnetRadiusM:state.experiment.magnetRadiusMm * 1e-3,
+    magnetHeightM:state.experiment.magnetHeightMm * 1e-3,
+    lambdaM,
+    orderAmplitude,
+    jcAm2:jc
+  });
 
   return {
     T, B, Babs, lambdaM, xiM, fields, equilibriumPhase, phase, jc, halfWidthM, profile, avgB,
     icA, jOp, eOp, sharing, geometry:g,
-    orderAmplitude: orderParameterAmplitude(T, state.params.tcK),
+    orderAmplitude,
     vortexDensity: vortexDensity(avgB),
     vortexSpacingM: triangularVortexSpacing(avgB),
     magnetizationApm: useBean ? bean.magnetizationApm() : (avgB - B) / (4e-7 * Math.PI),
     fullPenetrationT: useBean ? bean.fullPenetrationFieldT() : 0,
     cuK: copperThermalConductivity(cuT, state.experiment.copperRrr),
     cuCp: copperSpecificHeat(cuT),
-    cuRho: copperResistivityWF(cuT, state.experiment.copperRrr)
+    cuRho: copperResistivityWF(cuT, state.experiment.copperRrr),
+    levitation
   };
 }
 
@@ -1182,12 +1803,17 @@ function renderMetrics(s) {
   setText('metricCuK', `${formatNumber(s.cuK, 3)} W/(m·K)`);
   setText('metricCuCp', `${formatNumber(s.cuCp, 3)} J/(kg·K)`);
   setText('metricCuRho', `${formatNumber(s.cuRho, 3)} Ω·m`);
+  setText('metricLevForce', formatForce(s.levitation.forceN));
+  setText('metricLevStiffness', formatStiffness(s.levitation.stiffnessNm));
+  setText('metricShielding', formatPercent(s.levitation.shielding));
+  setText('metricGapField', formatField(s.levitation.gapFieldT));
+  setText('metricPinning', formatNumber(s.levitation.pinning, 2));
 
   const q = quench.last;
   setText('metricQuenchTime', `${formatNumber(quench.timeS, 3)} s`);
   setText('metricQuenchTemp', `${formatNumber(quench.temperatureK, 3)} K`);
   setText('metricQuenchPower', q ? `${formatNumber(q.pPerLengthWm, 3)} W/m` : '0 W/m');
-  setText('metricCurrentShare', q ? `SC ${formatNumber(q.iScA,1)} A · Cu ${formatNumber(q.iCuA,1)} A` : 'N/A');
+  setText('metricCurrentShare', q ? `SC ${formatNumber(q.iScA, 1)} A · Cu ${formatNumber(q.iCuA, 1)} A` : 'N/A');
 
   const p = preset();
   const badge = $('calibrationBadge');
@@ -1197,13 +1823,22 @@ function renderMetrics(s) {
   prov.innerHTML = '';
   const entries = Object.entries(state.params.provenance || {});
   entries.forEach(([key, value]) => {
-    const row = document.createElement('div'); row.className = 'prov-row';
-    const k = document.createElement('span'); k.textContent = key;
-    const v = document.createElement('span'); v.textContent = value;
-    row.append(k,v); prov.append(row);
+    const row = document.createElement('div');
+    row.className = 'prov-row';
+    const k = document.createElement('span');
+    k.textContent = key;
+    const v = document.createElement('span');
+    v.textContent = value;
+    row.append(k, v);
+    prov.append(row);
   });
-  const missing = $('missingList'); missing.innerHTML = '';
-  (p.missing || []).forEach(item => { const li = document.createElement('li'); li.textContent = item; missing.append(li); });
+  const missing = $('missingList');
+  missing.innerHTML = '';
+  (p.missing || []).forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    missing.append(li);
+  });
 }
 
 function renderMain(s) {
@@ -1211,19 +1846,38 @@ function renderMain(s) {
   const pair = $('pairingPanel');
   pair.hidden = state.activeView !== 'pairing';
   main.hidden = state.activeView === 'pairing';
-  document.querySelectorAll('.view-tab').forEach(el => el.classList.toggle('active', el.dataset.view === state.activeView));
+  document.querySelectorAll('.view-tab').forEach((el) => el.classList.toggle('active', el.dataset.view === state.activeView));
   const hintKey = `${state.activeView}Hint`;
   setText('viewHint', t(hintKey));
 
-  if (state.activeView === 'field') {
+  if (state.activeView === 'lab3d') {
+    renderLab3DScene(main, {
+      phase:s.phase,
+      fields:s.fields,
+      stateLabel:phaseLabel(s.phase),
+      levitation:s.levitation,
+      scene:state.scene,
+      geometry:s.geometry,
+      experiment:state.experiment,
+      orderAmplitude:s.orderAmplitude,
+      avgB:s.avgB,
+      vortexSpacingM:s.vortexSpacingM
+    });
+  } else if (state.activeView === 'field') {
     renderFieldScene(main, {
-      profile:s.profile, phase:s.phase, BappT:s.B, halfWidthM:s.halfWidthM, fields:s.fields,
-      stateLabel:phaseLabel(s.phase), magnetizationApm:s.magnetizationApm, fullPenetrationT:s.fullPenetrationT
+      profile:s.profile,
+      phase:s.phase,
+      BappT:s.B,
+      halfWidthM:s.halfWidthM,
+      fields:s.fields,
+      stateLabel:phaseLabel(s.phase),
+      magnetizationApm:s.magnetizationApm,
+      fullPenetrationT:s.fullPenetrationT
     });
   } else if (state.activeView === 'vortices') {
     renderVortexScene(main, { BavgT:s.avgB, fovUm:state.experiment.fieldOfViewUm, xiM:s.xiM, phase:s.phase, orderAmplitude:s.orderAmplitude });
   } else if (state.activeView === 'transport') {
-    renderTransportScene(main, { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase==='normal' });
+    renderTransportScene(main, { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase === 'normal' });
   } else if (state.activeView === 'quench') {
     renderThermalScene(main, { samples:quench.samples, tcK:state.params.tcK, bathK:state.experiment.bathTemperatureK });
   }
@@ -1237,28 +1891,37 @@ function renderPairing() {
 
 function renderMiniCharts(s) {
   renderPhaseScene($('phaseCanvas'), { params:state.params, temperatureK:s.T, BabsT:s.Babs });
-  renderTransportScene($('transportCanvas'), { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase==='normal' });
+  renderTransportScene($('transportCanvas'), { Jc:s.jc, nValue:state.params.nValue, ec:DEFAULT_EC, operatingJ:Math.abs(s.jOp), normalResistivity:state.params.normalResistivityOhmM, normal:s.phase === 'normal' });
   renderThermalScene($('thermalCanvas'), { samples:quench.samples, tcK:state.params.tcK, bathK:state.experiment.bathTemperatureK });
+  renderLevitationScene($('levitationCanvas'), { experiment:state.experiment, phase:s.phase, lambdaM:s.lambdaM, orderAmplitude:s.orderAmplitude, jc:s.jc, BappT:s.B });
 }
 
 function render() {
   const s = computeSnapshot();
-  renderMain(s); renderMetrics(s); renderPairing(); renderMiniCharts(s);
-  setText('materialName', getLanguage()==='ko' ? preset().nameKo : preset().nameEn);
-  setText('operatingSummary', `T ${formatNumber(s.T,2)} K · B ${formatField(s.B)} · I ${formatNumber(state.experiment.currentA,1)} A`);
-  const phasePill = $('phasePill'); phasePill.textContent = phaseLabel(s.phase); phasePill.dataset.phase = s.phase;
-  const sweepBtn = $('sweepToggle'); sweepBtn.textContent = state.sweepRunning ? t('sweepStop') : t('sweepStart');
-  const qBtn = $('quenchToggle'); qBtn.textContent = quench.running ? t('pauseQuench') : t('startQuench');
+  renderMain(s);
+  renderMetrics(s);
+  renderPairing();
+  renderMiniCharts(s);
+  setText('materialName', getLanguage() === 'ko' ? preset().nameKo : preset().nameEn);
+  setText('operatingSummary', `T ${formatNumber(s.T, 2)} K · B ${formatField(s.B)} · I ${formatNumber(state.experiment.currentA, 1)} A · gap ${formatNumber(state.experiment.magnetGapMm, 2)} mm`);
+  const phasePill = $('phasePill');
+  phasePill.textContent = phaseLabel(s.phase);
+  phasePill.dataset.phase = s.phase;
+  const sweepBtn = $('sweepToggle');
+  sweepBtn.textContent = state.sweepRunning ? t('sweepStop') : t('sweepStart');
+  const qBtn = $('quenchToggle');
+  qBtn.textContent = quench.running ? t('pauseQuench') : t('startQuench');
   state.dirty = false;
 }
 
 function bindRangeNumber(rangeId, numberId, getter, setter) {
-  const r = $(rangeId), n = $(numberId);
+  const r = $(rangeId);
+  const n = $(numberId);
   const apply = (source) => {
     const val = numberOrFallback(source.value, getter());
     setter(val);
     if (source === r && n) n.value = String(val);
-    if (source === n && r) r.value = String(Math.max(numberOrFallback(r.min,-Infinity), Math.min(numberOrFallback(r.max,Infinity), val)));
+    if (source === n && r) r.value = String(Math.max(numberOrFallback(r.min, -Infinity), Math.min(numberOrFallback(r.max, Infinity), val)));
     state.dirty = true;
   };
   if (r) r.addEventListener('input', () => apply(r));
@@ -1267,14 +1930,68 @@ function bindRangeNumber(rangeId, numberId, getter, setter) {
 
 function bindNumber(id, getter, setter) {
   const el = $(id);
-  if (el) el.addEventListener('input', e => { setter(numberOrFallback(e.target.value, getter())); state.dirty = true; });
+  if (el) el.addEventListener('input', (e) => {
+    setter(numberOrFallback(e.target.value, getter()));
+    state.dirty = true;
+  });
+}
+
+function resetCamera() {
+  state.scene.yawDeg = -32;
+  state.scene.pitchDeg = 18;
+  state.scene.zoom = 1;
+  state.dirty = true;
+}
+
+function bindCanvasControls() {
+  const canvas = $('mainCanvas');
+  if (!canvas) return;
+  const endDrag = () => {
+    state.scene.dragging = false;
+    state.scene.pointerId = null;
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state.activeView !== 'lab3d') return;
+    state.scene.dragging = true;
+    state.scene.pointerId = e.pointerId;
+    state.scene.lastX = e.clientX;
+    state.scene.lastY = e.clientY;
+    if (typeof canvas.setPointerCapture === 'function') canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!state.scene.dragging || state.activeView !== 'lab3d') return;
+    const dx = e.clientX - state.scene.lastX;
+    const dy = e.clientY - state.scene.lastY;
+    state.scene.lastX = e.clientX;
+    state.scene.lastY = e.clientY;
+    state.scene.yawDeg += dx * 0.45;
+    state.scene.pitchDeg = clamp(state.scene.pitchDeg + dy * 0.3, -10, 55);
+    state.experiment.autoRotate3d = false;
+    setValue('autoRotate3d', '0');
+    state.dirty = true;
+  });
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('pointerleave', () => {
+    if (state.scene.dragging) endDrag();
+  });
+  canvas.addEventListener('wheel', (e) => {
+    if (state.activeView !== 'lab3d') return;
+    e.preventDefault();
+    state.scene.zoom = clamp(state.scene.zoom * (e.deltaY > 0 ? 0.94 : 1.06), 0.6, 2.1);
+    state.dirty = true;
+  }, { passive:false });
+  canvas.addEventListener('dblclick', () => {
+    if (state.activeView !== 'lab3d') return;
+    resetCamera();
+  });
 }
 
 function bindUI() {
   $('languageToggle').addEventListener('click', toggleLanguage);
-  $('materialPreset').addEventListener('change', e => loadPreset(e.target.value));
-  $('tcOverride').addEventListener('change', e => {
-    const row = TC_BENCHMARKS.find(x => x.formula === e.target.value && x.status !== 'quarantined');
+  $('materialPreset').addEventListener('change', (e) => loadPreset(e.target.value));
+  $('tcOverride').addEventListener('change', (e) => {
+    const row = TC_BENCHMARKS.find((x) => x.formula === e.target.value && x.status !== 'quarantined');
     if (row) {
       state.params.tcK = row.tcExp;
       state.params.provenance = { ...(state.params.provenance || {}), tcK:`repository JARVIS-2022 benchmark: ${row.formula} ${row.tcExp} K` };
@@ -1283,82 +2000,100 @@ function bindUI() {
     }
   });
 
-  bindRangeNumber('temperatureRange','temperatureNumber',()=>state.experiment.temperatureK,v=>state.experiment.temperatureK=Math.max(0.01,v));
-  bindRangeNumber('fieldRange','fieldNumber',()=>state.experiment.appliedFieldT,v=>state.experiment.appliedFieldT=v);
-  bindRangeNumber('angleRange','angleNumber',()=>state.experiment.fieldAngleDeg,v=>state.experiment.fieldAngleDeg=Math.max(0,Math.min(90,v)));
-  bindRangeNumber('currentRange','currentNumber',()=>state.experiment.currentA,v=>state.experiment.currentA=Math.max(0,v));
+  bindRangeNumber('temperatureRange', 'temperatureNumber', () => state.experiment.temperatureK, (v) => state.experiment.temperatureK = Math.max(0.01, v));
+  bindRangeNumber('fieldRange', 'fieldNumber', () => state.experiment.appliedFieldT, (v) => state.experiment.appliedFieldT = v);
+  bindRangeNumber('angleRange', 'angleNumber', () => state.experiment.fieldAngleDeg, (v) => state.experiment.fieldAngleDeg = Math.max(0, Math.min(90, v)));
+  bindRangeNumber('currentRange', 'currentNumber', () => state.experiment.currentA, (v) => state.experiment.currentA = Math.max(0, v));
 
-  bindNumber('magneticHalfWidth',()=>state.experiment.magneticHalfWidthMm,v=>state.experiment.magneticHalfWidthMm=Math.max(0.0001,v));
-  bindNumber('fovUm',()=>state.experiment.fieldOfViewUm,v=>state.experiment.fieldOfViewUm=Math.max(0.05,v));
-  bindNumber('widthMm',()=>state.experiment.widthMm,v=>state.experiment.widthMm=Math.max(0.001,v));
-  bindNumber('scThicknessUm',()=>state.experiment.scThicknessUm,v=>state.experiment.scThicknessUm=Math.max(0.001,v));
-  bindNumber('copperThicknessUm',()=>state.experiment.copperThicknessUm,v=>state.experiment.copperThicknessUm=Math.max(0,v));
-  bindNumber('lengthCm',()=>state.experiment.lengthCm,v=>state.experiment.lengthCm=Math.max(0.001,v));
-  bindNumber('bathTemperatureK',()=>state.experiment.bathTemperatureK,v=>state.experiment.bathTemperatureK=Math.max(0.01,v));
-  bindNumber('heatTransfer',()=>state.experiment.heatTransferWm2K,v=>state.experiment.heatTransferWm2K=Math.max(0,v));
-  bindNumber('sweepAmplitude',()=>state.experiment.sweepAmplitudeT,v=>state.experiment.sweepAmplitudeT=Math.max(0.001,Math.abs(v)));
-  bindNumber('sweepRate',()=>state.experiment.sweepRateTPerS,v=>state.experiment.sweepRateTPerS=Math.max(0.0001,Math.abs(v)));
+  bindNumber('magneticHalfWidth', () => state.experiment.magneticHalfWidthMm, (v) => state.experiment.magneticHalfWidthMm = Math.max(0.0001, v));
+  bindNumber('fovUm', () => state.experiment.fieldOfViewUm, (v) => state.experiment.fieldOfViewUm = Math.max(0.05, v));
+  bindNumber('widthMm', () => state.experiment.widthMm, (v) => state.experiment.widthMm = Math.max(0.001, v));
+  bindNumber('scThicknessUm', () => state.experiment.scThicknessUm, (v) => state.experiment.scThicknessUm = Math.max(0.001, v));
+  bindNumber('copperThicknessUm', () => state.experiment.copperThicknessUm, (v) => state.experiment.copperThicknessUm = Math.max(0, v));
+  bindNumber('lengthCm', () => state.experiment.lengthCm, (v) => state.experiment.lengthCm = Math.max(0.001, v));
+  bindNumber('bathTemperatureK', () => state.experiment.bathTemperatureK, (v) => state.experiment.bathTemperatureK = Math.max(0.01, v));
+  bindNumber('heatTransfer', () => state.experiment.heatTransferWm2K, (v) => state.experiment.heatTransferWm2K = Math.max(0, v));
+  bindNumber('sampleRadiusMm', () => state.experiment.sampleRadiusMm, (v) => state.experiment.sampleRadiusMm = Math.max(0.5, v));
+  bindNumber('sampleHeightMm', () => state.experiment.sampleHeightMm, (v) => state.experiment.sampleHeightMm = Math.max(0.2, v));
+  bindNumber('magnetRadiusMm', () => state.experiment.magnetRadiusMm, (v) => state.experiment.magnetRadiusMm = Math.max(0.2, v));
+  bindNumber('magnetHeightMm', () => state.experiment.magnetHeightMm, (v) => state.experiment.magnetHeightMm = Math.max(0.2, v));
+  bindNumber('magnetGapMm', () => state.experiment.magnetGapMm, (v) => state.experiment.magnetGapMm = Math.max(0.1, v));
 
-  $('modelMode').addEventListener('change', e => { state.experiment.modelMode=e.target.value; state.beanActivated=false; bean.reset(0); state.dirty=true; });
-  $('sweepToggle').addEventListener('click', () => { state.sweepRunning=!state.sweepRunning; state.dirty=true; });
-  $('resetFlux').addEventListener('click', () => { state.beanActivated=false; bean.reset(0); state.dirty=true; });
+  $('autoRotate3d').addEventListener('change', (e) => { state.experiment.autoRotate3d = e.target.value === '1'; state.dirty = true; });
+  $('showFieldLines3d').addEventListener('change', (e) => { state.experiment.showFieldLines3d = e.target.value === '1'; state.dirty = true; });
+  $('showVortices3d').addEventListener('change', (e) => { state.experiment.showVortices3d = e.target.value === '1'; state.dirty = true; });
 
-  bindNumber('paramTc',()=>state.params.tcK,v=>state.params.tcK=Math.max(0.01,v));
-  bindNumber('paramLambda',()=>state.params.lambda0Nm,v=>state.params.lambda0Nm=Math.max(0.001,v));
-  bindNumber('paramXi',()=>state.params.xi0Nm,v=>state.params.xi0Nm=Math.max(0.001,v));
-  bindNumber('paramJc0',()=>state.params.jc0Am2,v=>state.params.jc0Am2=Math.max(0,v));
-  bindNumber('paramB0',()=>state.params.jcB0T,v=>state.params.jcB0T=Math.max(1e-9,v));
-  bindNumber('paramN',()=>state.params.nValue,v=>state.params.nValue=Math.max(1,v));
-  bindNumber('paramGamma',()=>state.params.anisotropyGamma,v=>state.params.anisotropyGamma=Math.max(1,v));
-  bindNumber('paramRhoNormal',()=>state.params.normalResistivityOhmM,v=>state.params.normalResistivityOhmM=Math.max(1e-12,v));
-  bindNumber('paramCpSc',()=>state.params.cpScJkgK,v=>state.params.cpScJkgK=Math.max(1,v));
+  bindNumber('sweepAmplitude', () => state.experiment.sweepAmplitudeT, (v) => state.experiment.sweepAmplitudeT = Math.max(0.001, Math.abs(v)));
+  bindNumber('sweepRate', () => state.experiment.sweepRateTPerS, (v) => state.experiment.sweepRateTPerS = Math.max(0.0001, Math.abs(v)));
 
-  bindNumber('pairLambda',()=>state.pairing.lambdaEpc,v=>state.pairing.lambdaEpc=Math.max(0.001,v));
-  bindNumber('pairMu',()=>state.pairing.muStar,v=>state.pairing.muStar=Math.max(0,v));
-  bindNumber('pairOmega',()=>state.pairing.omegaLogK,v=>state.pairing.omegaLogK=Math.max(0.001,v));
+  $('modelMode').addEventListener('change', (e) => { state.experiment.modelMode = e.target.value; state.beanActivated = false; bean.reset(0); state.dirty = true; });
+  $('sweepToggle').addEventListener('click', () => { state.sweepRunning = !state.sweepRunning; state.dirty = true; });
+  $('resetFlux').addEventListener('click', () => { state.beanActivated = false; bean.reset(0); state.dirty = true; });
 
-  document.querySelectorAll('.view-tab').forEach(btn => btn.addEventListener('click', () => { state.activeView=btn.dataset.view; state.dirty=true; }));
-  $('quenchToggle').addEventListener('click', () => { quench.running=!quench.running; state.dirty=true; });
-  $('quenchReset').addEventListener('click', () => { quench.reset(state.experiment.temperatureK); state.dirty=true; });
+  bindNumber('paramTc', () => state.params.tcK, (v) => state.params.tcK = Math.max(0.01, v));
+  bindNumber('paramLambda', () => state.params.lambda0Nm, (v) => state.params.lambda0Nm = Math.max(0.001, v));
+  bindNumber('paramXi', () => state.params.xi0Nm, (v) => state.params.xi0Nm = Math.max(0.001, v));
+  bindNumber('paramJc0', () => state.params.jc0Am2, (v) => state.params.jc0Am2 = Math.max(0, v));
+  bindNumber('paramB0', () => state.params.jcB0T, (v) => state.params.jcB0T = Math.max(1e-9, v));
+  bindNumber('paramN', () => state.params.nValue, (v) => state.params.nValue = Math.max(1, v));
+  bindNumber('paramGamma', () => state.params.anisotropyGamma, (v) => state.params.anisotropyGamma = Math.max(1, v));
+  bindNumber('paramRhoNormal', () => state.params.normalResistivityOhmM, (v) => state.params.normalResistivityOhmM = Math.max(1e-12, v));
+  bindNumber('paramCpSc', () => state.params.cpScJkgK, (v) => state.params.cpScJkgK = Math.max(1, v));
+
+  bindNumber('pairLambda', () => state.pairing.lambdaEpc, (v) => state.pairing.lambdaEpc = Math.max(0.001, v));
+  bindNumber('pairMu', () => state.pairing.muStar, (v) => state.pairing.muStar = Math.max(0, v));
+  bindNumber('pairOmega', () => state.pairing.omegaLogK, (v) => state.pairing.omegaLogK = Math.max(0.001, v));
+
+  document.querySelectorAll('.view-tab').forEach((btn) => btn.addEventListener('click', () => { state.activeView = btn.dataset.view; state.dirty = true; }));
+  $('quenchToggle').addEventListener('click', () => { quench.running = !quench.running; state.dirty = true; });
+  $('quenchReset').addEventListener('click', () => { quench.reset(state.experiment.temperatureK); state.dirty = true; });
   $('dataLimitsBtn').addEventListener('click', openDataDialog);
   $('dialogClose').addEventListener('click', closeDataDialog);
   $('exportState').addEventListener('click', exportState);
   $('importState').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', importStateFile);
-  window.addEventListener('languagechange', () => { populateStaticSelects(); populateDataDialog(); state.dirty=true; });
+  window.addEventListener('languagechange', () => { populateStaticSelects(); populateDataDialog(); state.dirty = true; });
   if (typeof window.ResizeObserver === 'function') {
     const ro = new ResizeObserver(() => { state.dirty = true; });
-    document.querySelectorAll('canvas').forEach(c => ro.observe(c));
+    document.querySelectorAll('canvas').forEach((c) => ro.observe(c));
   } else {
     window.addEventListener('resize', () => { state.dirty = true; });
     window.addEventListener('orientationchange', () => { state.dirty = true; });
   }
+  bindCanvasControls();
 }
 
 function populateStaticSelects() {
   const mat = $('materialPreset');
   const currentMat = state.presetId;
-  mat.innerHTML = MATERIAL_PRESETS.map(p => `<option value="${p.id}">${getLanguage()==='ko'?p.nameKo:p.nameEn}</option>`).join('');
+  mat.innerHTML = MATERIAL_PRESETS.map((p) => `<option value="${p.id}">${getLanguage() === 'ko' ? p.nameKo : p.nameEn}</option>`).join('');
   mat.value = currentMat;
   const tc = $('tcOverride');
   const currentTc = tc.value;
-  tc.innerHTML = `<option value="">${t('noOverride')}</option>` + TC_BENCHMARKS.filter(r=>r.status!=='quarantined').map(r=>`<option value="${r.formula}">${r.formula} · ${r.tcExp} K</option>`).join('');
-  if (Array.prototype.some.call(tc.options, o => o.value === currentTc)) tc.value=currentTc;
+  tc.innerHTML = `<option value="">${t('noOverride')}</option>` + TC_BENCHMARKS.filter((r) => r.status !== 'quarantined').map((r) => `<option value="${r.formula}">${r.formula} · ${r.tcExp} K</option>`).join('');
+  if (Array.prototype.some.call(tc.options, (o) => o.value === currentTc)) tc.value = currentTc;
+
+  ['autoRotate3d', 'showFieldLines3d', 'showVortices3d'].forEach((id) => {
+    const el = $(id);
+    const current = el.value;
+    el.innerHTML = `<option value="1">${t('yes')}</option><option value="0">${t('no')}</option>`;
+    if (Array.prototype.some.call(el.options, (o) => o.value === current)) el.value = current;
+  });
 }
 
 function populateDataDialog() {
   const sources = $('sourceCards');
   if (!sources) return;
-  sources.innerHTML = Object.values(SOURCE_LINKS).map(s => `
+  sources.innerHTML = Object.values(SOURCE_LINKS).map((s) => `
     <a class="source-card" href="${s.url}" target="_blank" rel="noopener noreferrer">
-      <strong>${s.id}</strong><span>${s.title}</span><small>${getLanguage()==='ko'?s.noteKo:s.noteEn}</small>
+      <strong>${s.id}</strong><span>${s.title}</span><small>${getLanguage() === 'ko' ? s.noteKo : s.noteEn}</small>
     </a>`).join('');
-  $('benchmarkBody').innerHTML = TC_BENCHMARKS.map(r => `
-    <tr class="${r.status==='quarantined'?'quarantined':''}">
-      <td>${r.formula}</td><td>${valueOrNA(r.sg)}</td><td>${valueOrNA(r.jarvis)}</td><td>${valueOrNA(r.tcExp)}</td><td>${valueOrNA(r.tcScdft)}</td><td>${valueOrNA(r.tcLm)}</td><td>${valueOrNA(r.tcJscr)}</td><td>${r.pressurePa ? formatNumber(r.pressurePa/1e9,0)+' GPa' : 'N/A'}</td><td>${r.status}</td>
+  $('benchmarkBody').innerHTML = TC_BENCHMARKS.map((r) => `
+    <tr class="${r.status === 'quarantined' ? 'quarantined' : ''}">
+      <td>${r.formula}</td><td>${valueOrNA(r.sg)}</td><td>${valueOrNA(r.jarvis)}</td><td>${valueOrNA(r.tcExp)}</td><td>${valueOrNA(r.tcScdft)}</td><td>${valueOrNA(r.tcLm)}</td><td>${valueOrNA(r.tcJscr)}</td><td>${r.pressurePa ? formatNumber(r.pressurePa / 1e9, 0) + ' GPa' : 'N/A'}</td><td>${r.status}</td>
     </tr>`).join('');
-  $('modelMatrixBody').innerHTML = MODEL_MATRIX.map(m => `
-    <tr><td>${m.id}</td><td>${m.priority}</td><td>${getLanguage()==='ko'?m.ko:m.en}</td><td>${m.model}</td></tr>`).join('');
+  $('modelMatrixBody').innerHTML = MODEL_MATRIX.map((m) => `
+    <tr><td>${m.id}</td><td>${m.priority}</td><td>${getLanguage() === 'ko' ? m.ko : m.en}</td><td>${m.model}</td></tr>`).join('');
 }
 
 function valueOrNA(value) {
@@ -1384,12 +2119,12 @@ function readFileText(file) {
 function openDataDialog() {
   populateDataDialog();
   const d = $('dataDialog');
-  if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open','');
+  if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
 }
 
 function exportState() {
   const payload = {
-    schema_version:'superconductor-sim-state/0.1.1',
+    schema_version:'superconductor-sim-state/0.2.0',
     exported_at:new Date().toISOString(),
     source_repository:SOURCE_LINKS.researchRepo.url,
     preset_id:state.presetId,
@@ -1397,27 +2132,42 @@ function exportState() {
     experiment:state.experiment,
     material_parameters:state.params,
     pairing_estimator:state.pairing,
+    camera_state:{ yawDeg:state.scene.yawDeg, pitchDeg:state.scene.pitchDeg, zoom:state.scene.zoom },
     warnings:[
       'This file is a simulator state, not a sample-calibrated material card.',
+      'Levitation force and 3-D scene layers are heuristic and must not be relabeled as measured values.',
       'Fields marked as assumptions must not be reclassified as measurements.'
     ]
   };
-  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='superconductor-sim-state.json'; a.click(); URL.revokeObjectURL(a.href);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'superconductor-sim-state.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function importStateFile(e) {
-  const file = e.target.files && e.target.files[0]; if (!file) return;
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
   try {
     const obj = JSON.parse(await readFileText(file));
-    if (obj.preset_id && MATERIAL_PRESETS.some(p=>p.id===obj.preset_id)) state.presetId=obj.preset_id;
-    if (obj.experiment && typeof obj.experiment==='object') state.experiment=Object.assign({}, state.experiment, obj.experiment);
-    if (obj.material_parameters && typeof obj.material_parameters==='object') state.params=Object.assign({}, state.params, obj.material_parameters);
-    if (obj.pairing_estimator && typeof obj.pairing_estimator==='object') state.pairing=Object.assign({}, state.pairing, obj.pairing_estimator);
-    state.beanActivated=false; bean.reset(0); quench.reset(state.experiment.temperatureK); updateAllInputs(); state.dirty=true;
+    if (obj.preset_id && MATERIAL_PRESETS.some((p) => p.id === obj.preset_id)) state.presetId = obj.preset_id;
+    if (obj.experiment && typeof obj.experiment === 'object') state.experiment = Object.assign({}, state.experiment, obj.experiment);
+    if (obj.material_parameters && typeof obj.material_parameters === 'object') state.params = Object.assign({}, state.params, obj.material_parameters);
+    if (obj.pairing_estimator && typeof obj.pairing_estimator === 'object') state.pairing = Object.assign({}, state.pairing, obj.pairing_estimator);
+    if (obj.camera_state && typeof obj.camera_state === 'object') state.scene = Object.assign({}, state.scene, obj.camera_state);
+    state.beanActivated = false;
+    bean.reset(0);
+    quench.reset(state.experiment.temperatureK);
+    updateAllInputs();
+    state.dirty = true;
   } catch (err) {
-    console.error(err); alert('Invalid Superconductor Sim JSON');
-  } finally { e.target.value=''; }
+    console.error(err);
+    alert('Invalid Superconductor Sim JSON');
+  } finally {
+    e.target.value = '';
+  }
 }
 
 function animationFrame(now) {
@@ -1426,12 +2176,16 @@ function animationFrame(now) {
   if (state.sweepRunning) {
     const amp = Math.max(0.001, state.experiment.sweepAmplitudeT);
     let B = state.experiment.appliedFieldT + state.sweepDirection * state.experiment.sweepRateTPerS * realDt;
-    if (B >= amp) { B=amp; state.sweepDirection=-1; }
-    if (B <= -amp) { B=-amp; state.sweepDirection=1; }
-    state.experiment.appliedFieldT=B;
+    if (B >= amp) { B = amp; state.sweepDirection = -1; }
+    if (B <= -amp) { B = -amp; state.sweepDirection = 1; }
+    state.experiment.appliedFieldT = B;
     setValue('fieldNumber', B.toFixed(6));
-    setValue('fieldRange', Math.max(-2,Math.min(2,B)));
-    state.dirty=true;
+    setValue('fieldRange', Math.max(-2, Math.min(2, B)));
+    state.dirty = true;
+  }
+  if (state.experiment.autoRotate3d && state.activeView === 'lab3d' && !state.scene.dragging) {
+    state.scene.yawDeg += realDt * 12;
+    state.dirty = true;
   }
   if (quench.running) {
     const inputs = {
@@ -1444,10 +2198,9 @@ function animationFrame(now) {
       bathTemperatureK:state.experiment.bathTemperatureK,
       heatTransferWm2K:state.experiment.heatTransferWm2K
     };
-    // Fixed integration step; several steps per frame for deterministic browser behavior.
-    for (let i=0;i<6;i++) quench.step(inputs,0.003);
-    if (quench.temperatureK > 500 || quench.timeS > 30) quench.running=false;
-    state.dirty=true;
+    for (let i = 0; i < 6; i++) quench.step(inputs, 0.003);
+    if (quench.temperatureK > 500 || quench.timeS > 30) quench.running = false;
+    state.dirty = true;
   }
   if (state.dirty) render();
   requestAnimationFrame(animationFrame);
@@ -1455,6 +2208,9 @@ function animationFrame(now) {
 
 function init() {
   initLanguage();
+  state.presetId = DEFAULT_EXPERIMENT.materialId || MATERIAL_PRESETS[0].id;
+  const initialPreset = MATERIAL_PRESETS.find((p) => p.id === state.presetId) || MATERIAL_PRESETS[0];
+  state.params = cloneParams(initialPreset.params);
   populateStaticSelects();
   bindUI();
   updateAllInputs();

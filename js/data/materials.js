@@ -40,6 +40,13 @@ export const SOURCE_LINKS = {
     url: 'https://archive.ics.uci.edu/dataset/464/superconductivty%2Bdata',
     noteEn: 'Composition-derived feature dataset for Tc regression; not a sample-complete simulation dataset.',
     noteKo: 'Tc 회귀용 조성 특징 데이터셋이며 시료 단위 완성형 시뮬레이션 데이터가 아님.'
+  },
+  levitation: {
+    id: 'LEVITATION',
+    title: 'Levitation benchmark literature (qualitative scope)',
+    url: 'https://arxiv.org/abs/cond-mat/0111316',
+    noteEn: 'Context for magnet-superconductor levitation and hysteretic force; this app uses only a heuristic display layer.',
+    noteKo: '자기부상과 히스테리시스 힘의 맥락 참고. 이 앱은 정량 보정보다는 휴리스틱 표현층만 사용한다.'
   }
 };
 
@@ -79,13 +86,133 @@ export const MODEL_MATRIX = [
 
 export const MATERIAL_PRESETS = [
   {
+    id: 'rebco-tape-77k',
+    formula: 'REBCO',
+    nameEn: 'REBCO coated conductor - 77 K engineering preset',
+    nameKo: 'REBCO 코팅도체 - 77 K 엔지니어링 프리셋',
+    calibrationReady: false,
+    provenanceClass: 'mixed',
+    missing: ['sample_id','measured Jc(T,B,theta)','layer-specific thermal stack','measured E-J curve','joint resistance','force-displacement benchmark'],
+    params: {
+      tcK: 92,
+      lambda0Nm: 150,
+      xi0Nm: 2.1,
+      jc0Am2: 3.2e10,
+      jcB0T: 0.65,
+      jcTempExp: 1.55,
+      jcFieldExp: 0.68,
+      anisotropyGamma: 5.4,
+      nValue: 26,
+      normalResistivityOhmM: 1e-6,
+      densityScKgM3: 6300,
+      cpScJkgK: 180,
+      provenance: {
+        tcK: 'representative cuprate engineering assumption',
+        lambda0Nm: 'representative cuprate engineering assumption',
+        xi0Nm: 'representative cuprate engineering assumption',
+        jc0Am2: 'engineering-scale assumption; not sample-calibrated',
+        nValue: 'engineering-scale assumption; not sample-calibrated'
+      }
+    }
+  },
+  {
+    id: 'ybco-bulk-demo',
+    formula: 'YBCO bulk',
+    nameEn: 'Bulk YBCO - levitation-oriented demo preset',
+    nameKo: '벌크 YBCO - 자기부상 시연 프리셋',
+    calibrationReady: false,
+    provenanceClass: 'assumed',
+    missing: ['sample_id','measured trapped-flux map','force-distance loop','oxygen-order history','microstructure and pinning map'],
+    params: {
+      tcK: 91,
+      lambda0Nm: 165,
+      xi0Nm: 2.4,
+      jc0Am2: 1.4e10,
+      jcB0T: 0.42,
+      jcTempExp: 1.6,
+      jcFieldExp: 0.74,
+      anisotropyGamma: 5.8,
+      nValue: 22,
+      normalResistivityOhmM: 1.2e-6,
+      densityScKgM3: 6380,
+      cpScJkgK: 190,
+      provenance: {
+        tcK: 'bulk YBCO demo assumption',
+        lambda0Nm: 'bulk YBCO demo assumption',
+        xi0Nm: 'bulk YBCO demo assumption',
+        jc0Am2: 'bulk levitation demo assumption',
+        nValue: 'bulk levitation demo assumption'
+      }
+    }
+  },
+  {
+    id: 'mgb2-wire-demo',
+    formula: 'MgB2',
+    nameEn: 'MgB2 - 20 K wire-like demo preset',
+    nameKo: 'MgB2 - 20 K 와이어형 시연 프리셋',
+    calibrationReady: false,
+    provenanceClass: 'mixed',
+    missing: ['sample-specific Jc(B,T)','wire architecture','measured copper fraction','electrothermal benchmark'],
+    params: {
+      tcK: 39,
+      lambda0Nm: 100,
+      xi0Nm: 5.2,
+      jc0Am2: 8.5e9,
+      jcB0T: 1.6,
+      jcTempExp: 1.35,
+      jcFieldExp: 0.62,
+      anisotropyGamma: 1.3,
+      nValue: 24,
+      normalResistivityOhmM: 2.2e-7,
+      densityScKgM3: 2570,
+      cpScJkgK: 350,
+      provenance: {
+        tcK: 'JARVIS literature benchmark value: MgB2 39 K',
+        lambda0Nm: 'representative MgB2 engineering assumption',
+        xi0Nm: 'representative MgB2 engineering assumption',
+        jc0Am2: 'engineering assumption; not sample-calibrated',
+        nValue: 'engineering assumption; not sample-calibrated'
+      }
+    }
+  },
+  {
+    id: 'nb-hybrid-2026',
+    formula: 'Nb',
+    nameEn: 'Niobium - hybrid literature reference',
+    nameKo: '나이오븀 - 문헌 혼합 참조',
+    calibrationReady: false,
+    provenanceClass: 'mixed',
+    missing: ['sample-specific Jc(T,B)','sample geometry','measured E-J curve','thermal boundary data','measured levitation benchmark'],
+    params: {
+      tcK: 9.3,
+      lambda0Nm: 29.1,
+      xi0Nm: 39.9,
+      jc0Am2: 1.0e9,
+      jcB0T: 0.08,
+      jcTempExp: 1.5,
+      jcFieldExp: 0.8,
+      anisotropyGamma: 1,
+      nValue: 30,
+      normalResistivityOhmM: 1.5e-7,
+      densityScKgM3: 8570,
+      cpScJkgK: 100,
+      provenance: {
+        tcK: 'repository JARVIS-2022 Table 1 literature reference',
+        lambda0Nm: 'McFadden et al. 2026: lambdaL = 29.1(10) nm',
+        xi0Nm: 'McFadden et al. 2026: xi0 = 39.9(25) nm',
+        jc0Am2: 'demo assumption - not sample-calibrated',
+        nValue: 'demo assumption - not sample-calibrated'
+      }
+    }
+  },
+  {
     id: 'generic-type-ii',
     formula: 'Type-II demo',
     nameEn: 'Generic Type-II - demonstration card',
     nameKo: '일반 제2종 - 시연용 카드',
     calibrationReady: false,
     provenanceClass: 'assumed',
-    missing: ['sample_id','measured Jc(T,B,θ)','measured λ(T)','measured ξ(T)','raw E-J curve','cooling boundary data'],
+    missing: ['sample_id','measured Jc(T,B,theta)','measured lambda(T)','measured xi(T)','raw E-J curve','cooling boundary data'],
     params: {
       tcK: 92,
       lambda0Nm: 150,
@@ -104,41 +231,11 @@ export const MATERIAL_PRESETS = [
         jc0Am2: 'demo assumption', nValue: 'demo assumption'
       }
     }
-  },
-  {
-    id: 'nb-hybrid-2026',
-    formula: 'Nb',
-    nameEn: 'Niobium - hybrid literature reference',
-    nameKo: '나이오븀 - 문헌 혼합 참조',
-    calibrationReady: false,
-    provenanceClass: 'mixed',
-    missing: ['sample-specific Jc(T,B)','sample geometry','measured E-J curve','thermal boundary data'],
-    params: {
-      tcK: 9.3,
-      lambda0Nm: 29.1,
-      xi0Nm: 39.9,
-      jc0Am2: 1e9,
-      jcB0T: 0.08,
-      jcTempExp: 1.5,
-      jcFieldExp: 0.8,
-      anisotropyGamma: 1,
-      nValue: 30,
-      normalResistivityOhmM: 1.5e-7,
-      densityScKgM3: 8570,
-      cpScJkgK: 100,
-      provenance: {
-        tcK: 'repository JARVIS-2022 Table 1 literature reference',
-        lambda0Nm: 'McFadden et al. 2026: λL = 29.1(10) nm',
-        xi0Nm: 'McFadden et al. 2026: ξ0 = 39.9(25) nm',
-        jc0Am2: 'demo assumption - not sample-calibrated',
-        nValue: 'demo assumption - not sample-calibrated'
-      }
-    }
   }
 ];
 
 export const DEFAULT_EXPERIMENT = {
-  materialId: 'generic-type-ii',
+  materialId: 'rebco-tape-77k',
   temperatureK: 77,
   appliedFieldT: 0.08,
   fieldAngleDeg: 90,
@@ -154,5 +251,13 @@ export const DEFAULT_EXPERIMENT = {
   copperRrr: 100,
   sweepAmplitudeT: 0.5,
   sweepRateTPerS: 0.08,
-  modelMode: 'hybrid'
+  modelMode: 'hybrid',
+  sampleRadiusMm: 12,
+  sampleHeightMm: 6,
+  magnetRadiusMm: 9,
+  magnetHeightMm: 7,
+  magnetGapMm: 5,
+  autoRotate3d: true,
+  showFieldLines3d: true,
+  showVortices3d: true
 };

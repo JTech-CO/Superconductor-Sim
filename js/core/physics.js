@@ -1,4 +1,4 @@
-import { K_B, PHI0, TYPE_BOUNDARY, DEFAULT_EC, clamp } from './constants.js';
+import { K_B, PHI0, TYPE_BOUNDARY, DEFAULT_EC, clamp, MU0 } from './constants.js';
 
 export function reducedTemperature(T, Tc) {
   if (!(Tc > 0)) return 1;
@@ -39,7 +39,6 @@ export function criticalFields({ lambdaM, xiM, T, Tc }) {
   const bcT = PHI0 / (2 * Math.sqrt(2) * Math.PI * lambdaM * xiM);
   let bc1T = bcT;
   if (kappa > TYPE_BOUNDARY) {
-    // London/GL large-kappa approximation; shown as approximate near the type boundary.
     bc1T = PHI0 / (4 * Math.PI * lambdaM * lambdaM) * Math.max(0, Math.log(Math.max(kappa, 1e-12)) + 0.5);
   }
   return { type, kappa, bc1T, bcT, bc2T };
@@ -126,7 +125,7 @@ export function allenDynesTc(lambdaEpc, muStar, omegaLogK) {
 
 export function weakCouplingGapMeV(TcK) {
   if (!(TcK > 0)) return 0;
-  return 1.764 * K_B * TcK / 1.602176634e-22; // J to meV
+  return 1.764 * K_B * TcK / 1.602176634e-22;
 }
 
 export function orderParameterAmplitude(T, Tc) {
@@ -136,4 +135,51 @@ export function orderParameterAmplitude(T, Tc) {
 
 export function estimateIcA(jcAm2, widthM, scThicknessM) {
   return Math.max(0, jcAm2 * Math.max(0, widthM) * Math.max(0, scThicknessM));
+}
+
+function levitationCoupling(gapM, magnetRadiusM) {
+  return Math.exp(-Math.max(0, gapM) / Math.max(1e-5, 0.55 * magnetRadiusM));
+}
+
+export function shieldingFraction({ phase, lambdaM, thicknessM, orderAmplitude }) {
+  if (phase === 'normal') return 0;
+  const base = 1 - Math.exp(-Math.max(0, thicknessM) / Math.max(1e-12, 2 * Math.max(lambdaM, 1e-12)));
+  if (phase === 'meissner') return clamp(0.72 + 0.28 * base, 0, 1);
+  return clamp((0.28 + 0.48 * base) * (0.55 + 0.45 * Math.max(0, orderAmplitude)), 0, 1);
+}
+
+export function pinningIndex({ phase, jcAm2, orderAmplitude }) {
+  if (phase !== 'mixed') return phase === 'meissner' ? 0.08 : 0;
+  const jcScale = Math.max(0, jcAm2) / (Math.max(0, jcAm2) + 3e9);
+  return clamp((0.4 + 0.6 * jcScale) * (0.55 + 0.45 * Math.max(0, orderAmplitude)), 0, 1.3);
+}
+
+export function levitationEstimate({
+  phase, BappT, radiusM, thicknessM, gapM, magnetRadiusM, magnetHeightM,
+  lambdaM, orderAmplitude, jcAm2
+}) {
+  const area = Math.PI * Math.max(1e-10, radiusM) * Math.max(1e-10, radiusM);
+  const coupling = levitationCoupling(gapM, magnetRadiusM);
+  const faceBoost = 1 + 0.2 * clamp(magnetHeightM / Math.max(1e-6, magnetRadiusM), 0, 2.5);
+  const gapFieldT = Math.abs(BappT) * coupling * faceBoost;
+  const shield = shieldingFraction({ phase, lambdaM, thicknessM, orderAmplitude });
+  const pinning = pinningIndex({ phase, jcAm2, orderAmplitude });
+  const pressurePa = 0.5 * shield * gapFieldT * gapFieldT / MU0 * (1 + 0.65 * pinning);
+  const forceN = pressurePa * area;
+  const gap2 = gapM + Math.max(1e-5, 0.0004 * Math.max(1, radiusM * 1000));
+  const coupling2 = levitationCoupling(gap2, magnetRadiusM);
+  const gapField2 = Math.abs(BappT) * coupling2 * faceBoost;
+  const pressure2 = 0.5 * shield * gapField2 * gapField2 / MU0 * (1 + 0.65 * pinning);
+  const force2 = pressure2 * area;
+  const stiffnessNm = (force2 - forceN) / Math.max(1e-9, gap2 - gapM);
+  return {
+    areaM2: area,
+    gapFieldT,
+    shielding: shield,
+    pinning,
+    pressurePa,
+    forceN,
+    stiffnessNm,
+    coupling
+  };
 }

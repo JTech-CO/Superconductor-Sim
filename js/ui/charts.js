@@ -1,5 +1,5 @@
-import { PHI0, clamp } from '../core/constants.js';
-import { criticalFields, lambdaAtTemperature, xiAtTemperature, electricFieldFromJ, vortexDensity, triangularVortexSpacing } from '../core/physics.js';
+import { PHI0, clamp, MU0 } from '../core/constants.js';
+import { criticalFields, lambdaAtTemperature, xiAtTemperature, electricFieldFromJ, vortexDensity, triangularVortexSpacing, levitationEstimate } from '../core/physics.js';
 
 function prepare(canvas) {
   const rect = canvas.getBoundingClientRect();
@@ -21,7 +21,10 @@ function css(name, fallback) {
 
 function base(ctx, w, h) {
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = css('--canvas-bg', '#081016');
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, css('--field-bg-top', '#0c1822'));
+  bg.addColorStop(1, css('--field-bg-bottom', '#081016'));
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 }
 
@@ -51,28 +54,298 @@ function fmt(value, digits = 3) {
   return value.toFixed(digits).replace(/\.?0+$/, '');
 }
 
+function formatForce(v) {
+  if (!Number.isFinite(v)) return 'N/A';
+  const a = Math.abs(v);
+  if (a >= 1) return `${fmt(v, 3)} N`;
+  if (a >= 1e-3) return `${fmt(v * 1e3, 2)} mN`;
+  return `${fmt(v * 1e6, 2)} µN`;
+}
+
+function drawAxes(ctx, box, xLabel, yLabel) {
+  const { x, y, w, h } = box;
+  ctx.strokeStyle = css('--grid', '#243440');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+  label(ctx, xLabel, x + w, y + h + 20, 'right', 16);
+  label(ctx, yLabel, x - 4, y - 12, 'left', 16);
+}
+
+function rad(deg) {
+  return deg * Math.PI / 180;
+}
+
+function makeCamera(w, h, scene) {
+  return {
+    yaw: rad(scene.yawDeg || -32),
+    pitch: rad(scene.pitchDeg || 18),
+    zoom: clamp(scene.zoom || 1, 0.5, 2.2),
+    cx: w * 0.5,
+    cy: h * 0.62,
+    perspective: Math.min(w, h) * 0.9
+  };
+}
+
+function transformPoint(p, camera) {
+  const cy = Math.cos(camera.yaw);
+  const sy = Math.sin(camera.yaw);
+  const cp = Math.cos(camera.pitch);
+  const sp = Math.sin(camera.pitch);
+  const x1 = p.x * cy - p.z * sy;
+  const z1 = p.x * sy + p.z * cy;
+  const y2 = p.y * cp - z1 * sp;
+  const z2 = p.y * sp + z1 * cp;
+  const depth = 34 + z2;
+  const scale = camera.zoom * camera.perspective / Math.max(6, depth);
+  return { x:x1, y:y2, z:z2, depth, sx:camera.cx + x1 * scale, sy:camera.cy - y2 * scale, scale };
+}
+
+function polyDepth(points, camera) {
+  let s = 0;
+  for (let i = 0; i < points.length; i++) s += transformPoint(points[i], camera).depth;
+  return s / Math.max(1, points.length);
+}
+
+function drawPolygon3D(ctx, camera, points, fill, stroke, lineWidth) {
+  if (!points || points.length < 3) return;
+  ctx.beginPath();
+  const first = transformPoint(points[0], camera);
+  ctx.moveTo(first.sx, first.sy);
+  for (let i = 1; i < points.length; i++) {
+    const p = transformPoint(points[i], camera);
+    ctx.lineTo(p.sx, p.sy);
+  }
+  ctx.closePath();
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth || 1;
+    ctx.stroke();
+  }
+}
+
+function drawPolyline3D(ctx, camera, points, stroke, lineWidth, alpha) {
+  if (!points || points.length < 2) return;
+  ctx.beginPath();
+  const first = transformPoint(points[0], camera);
+  ctx.moveTo(first.sx, first.sy);
+  for (let i = 1; i < points.length; i++) {
+    const p = transformPoint(points[i], camera);
+    ctx.lineTo(p.sx, p.sy);
+  }
+  ctx.globalAlpha = typeof alpha === 'number' ? alpha : 1;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = lineWidth || 1;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawCylinder3D(ctx, camera, options) {
+  const center = options.center;
+  const radius = Math.max(0.1, options.radius);
+  const height = Math.max(0.1, options.height);
+  const segments = options.segments || 28;
+  const sidePolys = [];
+  const top = [];
+  const bottom = [];
+  const yTop = center.y + height / 2;
+  const yBottom = center.y - height / 2;
+
+  for (let i = 0; i < segments; i++) {
+    const a = Math.PI * 2 * i / segments;
+    const x = center.x + radius * Math.cos(a);
+    const z = center.z + radius * Math.sin(a);
+    top.push({ x, y:yTop, z });
+    bottom.push({ x, y:yBottom, z });
+  }
+  for (let i = 0; i < segments; i++) {
+    const j = (i + 1) % segments;
+    const poly = [bottom[i], bottom[j], top[j], top[i]];
+    sidePolys.push({ depth:polyDepth(poly, camera), poly });
+  }
+  sidePolys.sort((a, b) => b.depth - a.depth);
+  for (let i = 0; i < sidePolys.length; i++) {
+    const tone = 0.8 + 0.2 * (i / Math.max(1, sidePolys.length - 1));
+    const fill = options.sideFill || css('--sample-top', '#152733');
+    ctx.globalAlpha = tone;
+    drawPolygon3D(ctx, camera, sidePolys[i].poly, fill, options.sideStroke || css('--border-strong', '#355263'), 0.8);
+  }
+  ctx.globalAlpha = 1;
+  drawPolygon3D(ctx, camera, bottom, options.bottomFill || options.sideFill || css('--sample-bottom', '#0d1b24'), null, 0);
+  drawPolygon3D(ctx, camera, top, options.topFill || options.sideFill || css('--sample-top', '#152733'), options.topStroke || css('--border-strong', '#355263'), 1.2);
+  return { top, bottom };
+}
+
+function drawGround(ctx, camera, y, width, depth) {
+  ctx.strokeStyle = css('--grid', '#243440');
+  ctx.lineWidth = 1;
+  const lines = [];
+  for (let x = -width; x <= width; x += width / 5) lines.push([{ x, y, z:-depth }, { x, y, z:depth }]);
+  for (let z = -depth; z <= depth; z += depth / 5) lines.push([{ x:-width, y, z }, { x:width, y, z }]);
+  lines.sort((a, b) => polyDepth(a, camera) - polyDepth(b, camera));
+  for (let i = 0; i < lines.length; i++) drawPolyline3D(ctx, camera, lines[i], css('--grid', '#243440'), 1, 0.6);
+}
+
+function arrow2D(ctx, x1, y1, x2, y2, color) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 10 * Math.cos(ang - Math.PI / 6), y2 - 10 * Math.sin(ang - Math.PI / 6));
+  ctx.lineTo(x2 - 10 * Math.cos(ang + Math.PI / 6), y2 - 10 * Math.sin(ang + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawCallout(ctx, x, y, title, value, color) {
+  const width = Math.max(160, Math.min(240, Math.max(title.length, value.length) * 7 + 38));
+  const height = 44;
+  roundedRect(ctx, x, y, width, height, 10);
+  ctx.fillStyle = 'rgba(8,16,22,0.88)';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  label(ctx, title, x + 12, y + 14, 'left', 13, css('--muted', '#91a0ad'));
+  label(ctx, value, x + 12, y + 30, 'left', 16, color);
+}
+
+export function renderLab3DScene(canvas, { phase, fields, stateLabel, levitation, scene, geometry, experiment, orderAmplitude, avgB, vortexSpacingM }) {
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
+
+  const camera = makeCamera(w, h, scene);
+  const phaseColor = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
+  const fieldColor = experiment.appliedFieldT >= 0 ? css('--field', '#61d7ff') : css('--field-negative', '#ff9e64');
+  const sampleRadius = Math.max(3, experiment.sampleRadiusMm * 0.35);
+  const sampleHeight = Math.max(1.2, experiment.sampleHeightMm * 0.35);
+  const magnetRadius = Math.max(2, experiment.magnetRadiusMm * 0.35);
+  const magnetHeight = Math.max(1.2, experiment.magnetHeightMm * 0.35);
+  const gap = Math.max(1.2, experiment.magnetGapMm * 0.4);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  roundedRect(ctx, 14, 14, w - 28, h - 28, 16);
+  ctx.fill();
+
+  drawGround(ctx, camera, -sampleHeight / 2 - 6, 18, 18);
+
+  const sideFill = phase === 'normal' ? 'rgba(129,77,74,0.92)' : phase === 'mixed' ? 'rgba(88,76,48,0.94)' : 'rgba(26,74,83,0.94)';
+  const topFill = phase === 'normal' ? 'rgba(180,91,88,0.96)' : phase === 'mixed' ? 'rgba(191,154,70,0.96)' : 'rgba(86,206,188,0.92)';
+
+  const sample = drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:0, z:0 },
+    radius:sampleRadius,
+    height:sampleHeight,
+    sideFill,
+    bottomFill:'rgba(8,18,24,0.95)',
+    topFill,
+    topStroke:phaseColor,
+    sideStroke:'rgba(255,255,255,0.06)'
+  });
+
+  const magnetCenterY = sampleHeight / 2 + gap + magnetHeight / 2;
+  drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:magnetCenterY, z:0 },
+    radius:magnetRadius,
+    height:magnetHeight,
+    sideFill:'rgba(159,52,89,0.95)',
+    bottomFill:'rgba(104,24,50,0.95)',
+    topFill:'rgba(214,88,124,0.98)',
+    topStroke:'rgba(255,194,209,0.95)',
+    sideStroke:'rgba(255,255,255,0.06)'
+  });
+
+  if (experiment.showFieldLines3d) {
+    const lines = [];
+    const lineCount = 7;
+    for (let i = 0; i < lineCount; i++) {
+      const t = -1 + 2 * i / (lineCount - 1);
+      const x = t * magnetRadius * 0.85;
+      const bend = (phase === 'meissner' ? 1.4 : phase === 'mixed' ? 0.8 : 0.15) * (1 - Math.abs(t) * 0.5);
+      const z = (i % 2 ? 1 : -1) * magnetRadius * 0.12;
+      lines.push([
+        { x, y:magnetCenterY + magnetHeight * 0.8, z },
+        { x, y:magnetCenterY + magnetHeight * 0.3, z },
+        { x: x * (1 + 0.12 * bend), y:sampleHeight / 2 + gap * 0.75, z: z + bend * 0.6 },
+        { x: x * (1 + 0.45 * bend), y:sampleHeight / 2 + gap * 0.18, z: z + bend * 1.3 },
+        { x: x * (1 + 0.6 * bend), y:-sampleHeight * 0.05, z: z + bend * 1.9 }
+      ]);
+    }
+    for (let i = 0; i < lines.length; i++) drawPolyline3D(ctx, camera, lines[i], fieldColor, 1.6, 0.86);
+  }
+
+  if (experiment.showVortices3d && phase === 'mixed' && Number.isFinite(vortexSpacingM)) {
+    const count = Math.min(14, Math.max(3, Math.round(sampleRadius / 1.6)));
+    for (let i = 0; i < count; i++) {
+      const ang = 2 * Math.PI * i / count;
+      const rr = sampleRadius * (0.18 + 0.72 * ((i % 4) / 4));
+      const p1 = { x:Math.cos(ang) * rr, y:sampleHeight * 0.42, z:Math.sin(ang) * rr };
+      const p2 = { x:Math.cos(ang) * rr, y:-sampleHeight * 0.42, z:Math.sin(ang) * rr };
+      drawPolyline3D(ctx, camera, [p1, p2], css('--warning', '#ffcc66'), 1.3, 0.9);
+    }
+  }
+
+  const pTop = transformPoint({ x:0, y:sampleHeight / 2, z:0 }, camera);
+  const pBottom = transformPoint({ x:0, y:-sampleHeight / 2, z:0 }, camera);
+  const pMag = transformPoint({ x:0, y:magnetCenterY, z:0 }, camera);
+  arrow2D(ctx, pTop.sx + 58, pTop.sy + 34, pTop.sx + 58, pTop.sy - 46, phaseColor);
+  label(ctx, 'Fz', pTop.sx + 70, pTop.sy - 51, 'left', 16, phaseColor);
+  arrow2D(ctx, pTop.sx + 85, pTop.sy - 42, pTop.sx + 85, pTop.sy + 30, css('--muted', '#91a0ad'));
+  label(ctx, 'g', pTop.sx + 97, pTop.sy + 34, 'left', 16, css('--muted', '#91a0ad'));
+
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = css('--muted-2', '#647583');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pTop.sx - 46, pTop.sy);
+  ctx.lineTo(pMag.sx - 46, pMag.sy + 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx, `${fmt(experiment.magnetGapMm, 2)} mm gap`, pMag.sx - 52, (pTop.sy + pMag.sy) / 2, 'right', 14, css('--muted', '#91a0ad'));
+
+  label(ctx, stateLabel.toUpperCase(), 22, 24, 'left', 18, phaseColor);
+  label(ctx, `Bgap ${fmt(levitation.gapFieldT, 3)} T | shielding ${fmt(levitation.shielding * 100, 1)}% | pinning ${fmt(levitation.pinning, 2)}`, 22, 48, 'left', 15, css('--text', '#e8f0f6'));
+  drawCallout(ctx, 20, h - 72, 'Heuristic levitation force', formatForce(levitation.forceN), phaseColor);
+  drawCallout(ctx, w - 218, h - 72, 'Mean internal field', `${fmt(avgB, 3)} T`, fieldColor);
+  drawCallout(ctx, w - 218, 20, 'Vortex spacing', Number.isFinite(vortexSpacingM) ? `${fmt(vortexSpacingM * 1e9, 1)} nm` : 'N/A', css('--warning', '#ffcc66'));
+  drawCallout(ctx, 20, 66, 'GL summary', `${fields.type.toUpperCase()} | Bc2 ${fmt(fields.bc2T, 2)} T`, css('--accent', '#8bdcff'));
+  label(ctx, orderAmplitude > 0 ? `order amplitude ${fmt(orderAmplitude, 3)}` : 'order amplitude 0', 22, 95, 'left', 14, css('--muted', '#91a0ad'));
+  label(ctx, '3-D scene is qualitative, not a calibrated FEM model.', 22, h - 24, 'left', 14, css('--muted-2', '#647583'));
+  label(ctx, 'Drag to orbit - wheel to zoom - double-click to reset camera', w - 20, h - 24, 'right', 14, css('--muted-2', '#647583'));
+}
+
 export function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fields, stateLabel, magnetizationApm, fullPenetrationT }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const pad = Math.max(28, w * 0.055);
   const sx = pad;
-  const sy = h * 0.21;
+  const sy = h * 0.18;
   const sw = w - 2 * pad;
-  const sh = h * 0.52;
+  const sh = h * 0.48;
 
-  const outerGradient = ctx.createLinearGradient(0, 0, 0, h);
-  outerGradient.addColorStop(0, css('--field-bg-top', '#0c1822'));
-  outerGradient.addColorStop(1, css('--field-bg-bottom', '#081016'));
-  ctx.fillStyle = outerGradient;
-  ctx.fillRect(0, 0, w, h);
-
-  // Ambient field guides.
   const fieldColor = css('--field', '#61d7ff');
   ctx.strokeStyle = fieldColor;
   ctx.globalAlpha = 0.14;
   ctx.lineWidth = 1;
   const lineStep = Math.max(18, sw / 26);
   for (let x = sx % lineStep; x < w; x += lineStep) {
-    ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, h - 18); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, 18);
+    ctx.lineTo(x, h - 18);
+    ctx.stroke();
   }
   ctx.globalAlpha = 1;
 
@@ -80,10 +353,19 @@ export function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fi
   const sampleGrad = ctx.createLinearGradient(sx, sy, sx, sy + sh);
   sampleGrad.addColorStop(0, css('--sample-top', '#152733'));
   sampleGrad.addColorStop(1, css('--sample-bottom', '#0d1b24'));
-  ctx.fillStyle = sampleGrad; ctx.fill();
-  ctx.strokeStyle = css('--border-strong', '#355263'); ctx.lineWidth = 1.25; ctx.stroke();
+  ctx.fillStyle = sampleGrad;
+  ctx.fill();
+  ctx.strokeStyle = css('--border-strong', '#355263');
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
 
-  const maxB = Math.max(1e-12, Math.abs(BappT), ...profile.map(p => Math.abs(p.bT)));
+  const layerY = sy + sh * 0.68;
+  ctx.fillStyle = 'rgba(173, 217, 255, 0.10)';
+  roundedRect(ctx, sx + 18, layerY, sw - 36, 16, 8);
+  ctx.fill();
+  label(ctx, 'sample cross-section', sx + sw - 18, layerY - 12, 'right', 13);
+
+  const maxB = Math.max(1e-12, Math.abs(BappT), ...profile.map((p) => Math.abs(p.bT)));
   const stride = Math.max(1, Math.floor(profile.length / Math.max(20, Math.floor(sw / 13))));
   for (let i = 0; i < profile.length; i += stride) {
     const p = profile[i];
@@ -98,33 +380,38 @@ export function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fi
     ctx.moveTo(x, sy + 8);
     ctx.lineTo(x, sy + sh - 8);
     ctx.stroke();
-    // Arrow head.
     const dir = p.bT >= 0 ? 1 : -1;
     const ay = sy + sh * 0.46;
     ctx.beginPath();
     ctx.moveTo(x, ay + dir * 7);
     ctx.lineTo(x - 3.5, ay);
     ctx.lineTo(x + 3.5, ay);
-    ctx.closePath(); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+    ctx.closePath();
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  // State core annotation.
   const stateColor = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
   ctx.fillStyle = stateColor;
   ctx.globalAlpha = 0.08;
-  roundedRect(ctx, sx + sw * 0.33, sy + sh * 0.34, sw * 0.34, sh * 0.32, 12); ctx.fill();
+  roundedRect(ctx, sx + sw * 0.33, sy + sh * 0.34, sw * 0.34, sh * 0.32, 12);
+  ctx.fill();
   ctx.globalAlpha = 1;
   label(ctx, stateLabel.toUpperCase(), sx + sw / 2, sy + sh / 2, 'center', Math.min(20, Math.max(15, w / 42)), stateColor);
 
-  // Profile plot strip.
-  const py = sy + sh + 36;
+  const py = sy + sh + 42;
   const ph = Math.max(48, h - py - 28);
   const zeroY = py + ph / 2;
-  ctx.strokeStyle = css('--grid', '#243440'); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(sx, zeroY); ctx.lineTo(sx + sw, zeroY); ctx.stroke();
+  ctx.strokeStyle = css('--grid', '#243440');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx, zeroY);
+  ctx.lineTo(sx + sw, zeroY);
+  ctx.stroke();
   const plotMax = maxB;
-  ctx.strokeStyle = fieldColor; ctx.lineWidth = 2;
+  ctx.strokeStyle = fieldColor;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   profile.forEach((p, i) => {
     const xNorm = (p.xM + halfWidthM) / (2 * halfWidthM || 1);
@@ -133,21 +420,24 @@ export function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fi
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
-  label(ctx, `B(x) · Bapp ${fmt(BappT)} T`, sx, py - 10, 'left', 15);
-  label(ctx, `M ${fmt(magnetizationApm)} A/m · Bp ${fmt(fullPenetrationT)} T`, sx + sw, py - 10, 'right', 15);
-  label(ctx, `−${fmt(halfWidthM * 1e3, 2)} mm`, sx, py + ph + 10, 'left', 16);
+  label(ctx, `B(x) - Bapp ${fmt(BappT)} T`, sx, py - 10, 'left', 15);
+  label(ctx, `M ${fmt(magnetizationApm)} A/m - Bp ${fmt(fullPenetrationT)} T - Bc1 ${fmt(fields.bc1T)} T`, sx + sw, py - 10, 'right', 15);
+  label(ctx, `-${fmt(halfWidthM * 1e3, 2)} mm`, sx, py + ph + 10, 'left', 16);
   label(ctx, `+${fmt(halfWidthM * 1e3, 2)} mm`, sx + sw, py + ph + 10, 'right', 16);
 }
 
 export function renderVortexScene(canvas, { BavgT, fovUm, xiM, phase, orderAmplitude }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const pad = Math.max(28, Math.min(w, h) * 0.08);
   const size = Math.min(w - 2 * pad, h - 2 * pad);
   const x0 = (w - size) / 2;
   const y0 = (h - size) / 2;
   roundedRect(ctx, x0, y0, size, size, 14);
-  ctx.fillStyle = css('--sample-bottom', '#0d1b24'); ctx.fill();
-  ctx.strokeStyle = css('--border-strong', '#355263'); ctx.stroke();
+  ctx.fillStyle = css('--sample-bottom', '#0d1b24');
+  ctx.fill();
+  ctx.strokeStyle = css('--border-strong', '#355263');
+  ctx.stroke();
 
   const fovM = Math.max(1e-9, fovUm * 1e-6);
   const spacingM = triangularVortexSpacing(BavgT);
@@ -159,7 +449,8 @@ export function renderVortexScene(canvas, { BavgT, fovUm, xiM, phase, orderAmpli
   if (phase !== 'mixed' || !Number.isFinite(spacingM) || expected < 0.03) {
     ctx.globalAlpha = 0.12 + 0.1 * orderAmplitude;
     ctx.fillStyle = css('--success', '#65e0ad');
-    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12); ctx.fill();
+    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12);
+    ctx.fill();
     ctx.globalAlpha = 1;
     label(ctx, phase === 'normal' ? 'NO COHERENT VORTEX LATTICE' : 'MEISSNER / NO BULK VORTICES', w / 2, h / 2, 'center', 16, phase === 'normal' ? css('--danger', '#ff756d') : css('--success', '#65e0ad'));
   } else {
@@ -180,51 +471,58 @@ export function renderVortexScene(canvas, { BavgT, fovUm, xiM, phase, orderAmpli
         grad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.globalAlpha = 0.42;
         ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.arc(x, y, corePx * 2.8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, corePx * 2.8, 0, Math.PI * 2);
+        ctx.fill();
         ctx.globalAlpha = 1;
         ctx.fillStyle = signColor;
-        ctx.beginPath(); ctx.arc(x, y, Math.max(1.4, corePx * 0.38), 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1.4, corePx * 0.38), 0, Math.PI * 2);
+        ctx.fill();
         count++;
       }
     }
-    // faint order-parameter overlay
     ctx.globalAlpha = 0.05 + 0.08 * orderAmplitude;
     ctx.fillStyle = css('--success', '#65e0ad');
-    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12); ctx.fill();
+    roundedRect(ctx, x0 + 2, y0 + 2, size - 4, size - 4, 12);
+    ctx.fill();
     ctx.globalAlpha = 1;
-    label(ctx, `rendered ≤ ${count} · expected ${fmt(expected, 1)}`, x0 + 10, y0 + size - 14, 'left', 16);
+    label(ctx, `rendered <= ${count} - expected ${fmt(expected, 1)}`, x0 + 10, y0 + size - 14, 'left', 16);
   }
 
   label(ctx, `${fmt(fovUm, 2)} µm`, x0 + size, y0 + size + 18, 'right', 15);
-  label(ctx, `a△ ${Number.isFinite(spacingM) ? fmt(spacingM * 1e9, 1) + ' nm' : 'N/A'} · nᵥ ${fmt(density)} m⁻²`, x0, y0 - 14, 'left', 15);
-  label(ctx, `Φ₀ = ${PHI0.toExponential(4)} Wb`, x0 + size, y0 - 14, 'right', 15);
-}
-
-function drawAxes(ctx, box, xLabel, yLabel) {
-  const { x, y, w, h } = box;
-  ctx.strokeStyle = css('--grid', '#243440'); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();
-  label(ctx, xLabel, x + w, y + h + 20, 'right', 16);
-  label(ctx, yLabel, x - 4, y - 12, 'left', 16);
+  label(ctx, `a_triangle ${Number.isFinite(spacingM) ? fmt(spacingM * 1e9, 1) + ' nm' : 'N/A'} - nv ${fmt(density)} m^-2`, x0, y0 - 14, 'left', 15);
+  label(ctx, `Phi0 = ${PHI0.toExponential(4)} Wb`, x0 + size, y0 - 14, 'right', 15);
 }
 
 export function renderTransportScene(canvas, { Jc, nValue, ec, operatingJ, normalResistivity, normal }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const box = { x:62, y:28, w:w - 88, h:h - 72 };
   drawAxes(ctx, box, 'J / Jc', 'E [V/m]');
-  const xmin = -2, xmax = 1.25; // log10 J/Jc
-  const ymin = -12, ymax = 2;
-  const mapX = v => box.x + (v - xmin) / (xmax - xmin) * box.w;
-  const mapY = v => box.y + box.h - (v - ymin) / (ymax - ymin) * box.h;
+  const xmin = -2;
+  const xmax = 1.25;
+  const ymin = -12;
+  const ymax = 2;
+  const mapX = (v) => box.x + (v - xmin) / (xmax - xmin) * box.w;
+  const mapY = (v) => box.y + box.h - (v - ymin) / (ymax - ymin) * box.h;
   for (let p = -12; p <= 2; p += 2) {
-    const yy = mapY(p); ctx.strokeStyle = css('--grid', '#243440'); ctx.globalAlpha = 0.55;
-    ctx.beginPath(); ctx.moveTo(box.x, yy); ctx.lineTo(box.x + box.w, yy); ctx.stroke();
-    ctx.globalAlpha = 1; label(ctx, `1e${p}`, box.x - 8, yy, 'right', 14);
+    const yy = mapY(p);
+    ctx.strokeStyle = css('--grid', '#243440');
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(box.x, yy);
+    ctx.lineTo(box.x + box.w, yy);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    label(ctx, `1e${p}`, box.x - 8, yy, 'right', 14);
   }
-  [-2,-1,0,1].forEach(p => label(ctx, `1e${p}`, mapX(p), box.y + box.h + 10, 'center', 14));
+  [-2, -1, 0, 1].forEach((p) => label(ctx, `1e${p}`, mapX(p), box.y + box.h + 10, 'center', 14));
 
   const accent = css('--field', '#61d7ff');
-  ctx.strokeStyle = accent; ctx.lineWidth = 2.3; ctx.beginPath();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2.3;
+  ctx.beginPath();
   let started = false;
   for (let i = 0; i <= 260; i++) {
     const lx = xmin + (xmax - xmin) * i / 260;
@@ -234,91 +532,206 @@ export function renderTransportScene(canvas, { Jc, nValue, ec, operatingJ, norma
     else E = electricFieldFromJ(Jc * ratio, Jc, nValue, ec);
     const ly = Math.log10(Math.max(1e-20, Math.abs(E)));
     if (ly < ymin - 1 || ly > ymax + 1) continue;
-    const px = mapX(lx), py = mapY(clamp(ly, ymin, ymax));
+    const px = mapX(lx);
+    const py = mapY(clamp(ly, ymin, ymax));
     if (!started) { ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
   }
   ctx.stroke();
 
   const ecLog = Math.log10(ec);
-  ctx.setLineDash([5,5]); ctx.strokeStyle = css('--warning', '#ffcc66'); ctx.globalAlpha = 0.7;
-  ctx.beginPath(); ctx.moveTo(box.x, mapY(ecLog)); ctx.lineTo(box.x + box.w, mapY(ecLog)); ctx.stroke();
-  ctx.setLineDash([]); ctx.globalAlpha = 1; label(ctx, 'Ec', box.x + box.w - 4, mapY(ecLog) - 9, 'right', 14, css('--warning', '#ffcc66'));
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = css('--warning', '#ffcc66');
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(box.x, mapY(ecLog));
+  ctx.lineTo(box.x + box.w, mapY(ecLog));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  label(ctx, 'Ec', box.x + box.w - 4, mapY(ecLog) - 9, 'right', 14, css('--warning', '#ffcc66'));
 
   if (Jc > 0 && operatingJ > 0) {
     const ratio = operatingJ / Jc;
     const Eop = normal ? normalResistivity * operatingJ : electricFieldFromJ(operatingJ, Jc, nValue, ec);
     const px = mapX(clamp(Math.log10(Math.max(1e-9, ratio)), xmin, xmax));
     const py = mapY(clamp(Math.log10(Math.max(1e-20, Math.abs(Eop))), ymin, ymax));
-    ctx.fillStyle = css('--danger', '#ff756d'); ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
-    label(ctx, `op · J/Jc ${fmt(ratio,2)}`, px + 8, py - 10, 'left', 16, css('--text', '#e8f0f6'));
+    ctx.fillStyle = css('--danger', '#ff756d');
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    label(ctx, `op - J/Jc ${fmt(ratio, 2)}`, px + 8, py - 10, 'left', 16, css('--text', '#e8f0f6'));
   }
 }
 
 export function renderThermalScene(canvas, { samples, tcK, bathK }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const box = { x:58, y:28, w:w - 84, h:h - 72 };
   drawAxes(ctx, box, 't [s]', 'T [K]');
   const data = samples && samples.length ? samples : [{ t:0, temperatureK:bathK }];
   const tMin = data[0].t;
   const tMax = Math.max(tMin + 0.1, data[data.length - 1].t);
-  let yMin = Math.min(bathK, ...data.map(d => d.temperatureK));
-  let yMax = Math.max(tcK, bathK + 1, ...data.map(d => d.temperatureK));
-  const span = Math.max(1, yMax - yMin); yMin = Math.max(0, yMin - 0.08 * span); yMax += 0.12 * span;
-  const mapX = v => box.x + (v - tMin) / (tMax - tMin) * box.w;
-  const mapY = v => box.y + box.h - (v - yMin) / (yMax - yMin) * box.h;
+  let yMin = Math.min(bathK, ...data.map((d) => d.temperatureK));
+  let yMax = Math.max(tcK, bathK + 1, ...data.map((d) => d.temperatureK));
+  const span = Math.max(1, yMax - yMin);
+  yMin = Math.max(0, yMin - 0.08 * span);
+  yMax += 0.12 * span;
+  const mapX = (v) => box.x + (v - tMin) / (tMax - tMin) * box.w;
+  const mapY = (v) => box.y + box.h - (v - yMin) / (yMax - yMin) * box.h;
 
   const drawRef = (value, text, color) => {
     if (value < yMin || value > yMax) return;
-    ctx.setLineDash([5,5]); ctx.strokeStyle = color; ctx.globalAlpha = 0.65;
-    ctx.beginPath(); ctx.moveTo(box.x, mapY(value)); ctx.lineTo(box.x + box.w, mapY(value)); ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha = 1; label(ctx, text, box.x + box.w - 4, mapY(value) - 9, 'right', 14, color);
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    ctx.moveTo(box.x, mapY(value));
+    ctx.lineTo(box.x + box.w, mapY(value));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    label(ctx, text, box.x + box.w - 4, mapY(value) - 9, 'right', 14, color);
   };
   drawRef(tcK, 'Tc', css('--danger', '#ff756d'));
   drawRef(bathK, 'Tbath', css('--field', '#61d7ff'));
 
-  ctx.strokeStyle = css('--warning', '#ffcc66'); ctx.lineWidth = 2.4; ctx.beginPath();
-  data.forEach((d, i) => { const px = mapX(d.t), py = mapY(d.temperatureK); if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+  ctx.strokeStyle = css('--warning', '#ffcc66');
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const px = mapX(d.t);
+    const py = mapY(d.temperatureK);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
   ctx.stroke();
-  label(ctx, `${fmt(tMax - tMin,2)} s window`, box.x + box.w, box.y + box.h + 10, 'right', 14);
-  label(ctx, `${fmt(yMin,1)}–${fmt(yMax,1)} K`, box.x, box.y - 12, 'left', 14);
+  label(ctx, `${fmt(tMax - tMin, 2)} s window`, box.x + box.w, box.y + box.h + 10, 'right', 14);
+  label(ctx, `${fmt(yMin, 1)}-${fmt(yMax, 1)} K`, box.x, box.y - 12, 'left', 14);
 }
 
 export function renderPhaseScene(canvas, { params, temperatureK, BabsT }) {
-  const { ctx, w, h } = prepare(canvas); base(ctx, w, h);
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
   const box = { x:62, y:30, w:w - 88, h:h - 76 };
   drawAxes(ctx, box, 'T / Tc', 'B [T]');
   const lambda0M = params.lambda0Nm * 1e-9;
   const xi0M = params.xi0Nm * 1e-9;
   const f0 = criticalFields({ lambdaM:lambda0M, xiM:xi0M, T:0, Tc:params.tcK });
   const yMax = Math.max(0.05, Math.min(120, f0.bc2T * 1.12 || f0.bcT * 1.3 || 1));
-  const mapX = t => box.x + t / 1.08 * box.w;
-  const mapY = b => box.y + box.h - clamp(b / yMax, 0, 1) * box.h;
+  const mapX = (t) => box.x + t / 1.08 * box.w;
+  const mapY = (b) => box.y + box.h - clamp(b / yMax, 0, 1) * box.h;
 
   const lines = { bc1:[], bc2:[], bc:[] };
-  for (let i=0;i<=180;i++) {
+  for (let i = 0; i <= 180; i++) {
     const tr = 0.995 * i / 180;
     const T = tr * params.tcK;
     const l = lambdaAtTemperature(lambda0M, T, params.tcK);
     const x = xiAtTemperature(xi0M, T, params.tcK);
     const f = criticalFields({ lambdaM:l, xiM:x, T, Tc:params.tcK });
-    lines.bc1.push([tr, f.bc1T]); lines.bc2.push([tr, f.bc2T]); lines.bc.push([tr, f.bcT]);
+    lines.bc1.push([tr, f.bc1T]);
+    lines.bc2.push([tr, f.bc2T]);
+    lines.bc.push([tr, f.bcT]);
   }
-  const draw = (arr, color, width, dash=[]) => {
-    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash); ctx.beginPath();
-    arr.forEach(([tx,b],i)=>{ const px=mapX(tx), py=mapY(b); if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py); }); ctx.stroke(); ctx.setLineDash([]);
+  const draw = (arr, color, width, dash) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    arr.forEach(([tx, b], i) => {
+      const px = mapX(tx);
+      const py = mapY(b);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
   };
   if (f0.type === 'type-i' || f0.type === 'borderline') {
     draw(lines.bc, css('--warning', '#ffcc66'), 2.2);
-    label(ctx, 'Bc', mapX(0.1), mapY(lines.bc[Math.floor(lines.bc.length*0.1)][1]) - 10, 'left', 16, css('--warning', '#ffcc66'));
+    label(ctx, 'Bc', mapX(0.1), mapY(lines.bc[Math.floor(lines.bc.length * 0.1)][1]) - 10, 'left', 16, css('--warning', '#ffcc66'));
   } else {
     draw(lines.bc2, css('--danger', '#ff756d'), 2.2);
-    draw(lines.bc1, css('--field', '#61d7ff'), 1.8, [5,4]);
-    label(ctx, 'Bc2', mapX(0.08), mapY(lines.bc2[Math.floor(lines.bc2.length*0.08)][1]) - 10, 'left', 16, css('--danger', '#ff756d'));
-    label(ctx, 'Bc1', mapX(0.2), mapY(lines.bc1[Math.floor(lines.bc1.length*0.2)][1]) - 10, 'left', 16, css('--field', '#61d7ff'));
+    draw(lines.bc1, css('--field', '#61d7ff'), 1.8, [5, 4]);
+    label(ctx, 'Bc2', mapX(0.08), mapY(lines.bc2[Math.floor(lines.bc2.length * 0.08)][1]) - 10, 'left', 16, css('--danger', '#ff756d'));
+    label(ctx, 'Bc1', mapX(0.2), mapY(lines.bc1[Math.floor(lines.bc1.length * 0.2)][1]) - 10, 'left', 16, css('--field', '#61d7ff'));
   }
   const tx = clamp(temperatureK / params.tcK, 0, 1.08);
-  const px = mapX(tx), py = mapY(BabsT);
-  ctx.fillStyle = css('--text', '#e8f0f6'); ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+  const px = mapX(tx);
+  const py = mapY(BabsT);
+  ctx.fillStyle = css('--text', '#e8f0f6');
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
   label(ctx, 'operating point', px + 8, py - 10, 'left', 14, css('--text', '#e8f0f6'));
   label(ctx, `B scale max ${fmt(yMax)} T`, box.x + box.w, box.y - 12, 'right', 14);
+}
+
+export function renderLevitationScene(canvas, { experiment, phase, lambdaM, orderAmplitude, jc, BappT }) {
+  const { ctx, w, h } = prepare(canvas);
+  base(ctx, w, h);
+  const box = { x:58, y:28, w:w - 84, h:h - 72 };
+  drawAxes(ctx, box, 'gap [mm]', 'Fz [N]');
+  const maxGapMm = Math.max(8, experiment.magnetGapMm * 2.8);
+  const samples = [];
+  let ymax = 0;
+  for (let i = 0; i <= 90; i++) {
+    const gapMm = 0.2 + (maxGapMm - 0.2) * i / 90;
+    const lev = levitationEstimate({
+      phase,
+      BappT,
+      radiusM:experiment.sampleRadiusMm * 1e-3,
+      thicknessM:experiment.sampleHeightMm * 1e-3,
+      gapM:gapMm * 1e-3,
+      magnetRadiusM:experiment.magnetRadiusMm * 1e-3,
+      magnetHeightM:experiment.magnetHeightMm * 1e-3,
+      lambdaM,
+      orderAmplitude,
+      jcAm2:jc
+    });
+    ymax = Math.max(ymax, lev.forceN);
+    samples.push({ gapMm, forceN:lev.forceN });
+  }
+  ymax = Math.max(1e-6, ymax * 1.1);
+  const mapX = (v) => box.x + v / maxGapMm * box.w;
+  const mapY = (v) => box.y + box.h - v / ymax * box.h;
+
+  for (let i = 0; i <= 4; i++) {
+    const yy = box.y + box.h - i / 4 * box.h;
+    ctx.strokeStyle = css('--grid', '#243440');
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(box.x, yy);
+    ctx.lineTo(box.x + box.w, yy);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    label(ctx, fmt(ymax * i / 4, 3), box.x - 8, yy, 'right', 13);
+  }
+  ctx.strokeStyle = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  samples.forEach((d, i) => {
+    const px = mapX(d.gapMm);
+    const py = mapY(d.forceN);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  const current = levitationEstimate({
+    phase,
+    BappT,
+    radiusM:experiment.sampleRadiusMm * 1e-3,
+    thicknessM:experiment.sampleHeightMm * 1e-3,
+    gapM:experiment.magnetGapMm * 1e-3,
+    magnetRadiusM:experiment.magnetRadiusMm * 1e-3,
+    magnetHeightM:experiment.magnetHeightMm * 1e-3,
+    lambdaM,
+    orderAmplitude,
+    jcAm2:jc
+  });
+  const px = mapX(experiment.magnetGapMm);
+  const py = mapY(current.forceN);
+  ctx.fillStyle = css('--text', '#e8f0f6');
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
+  label(ctx, `${fmt(experiment.magnetGapMm, 2)} mm / ${formatForce(current.forceN)}`, px + 8, py - 10, 'left', 14, css('--text', '#e8f0f6'));
+  label(ctx, `magnetic pressure approx. p = B^2 / (2mu0) * shielding`, box.x, box.y - 12, 'left', 13, css('--muted', '#91a0ad'));
 }
