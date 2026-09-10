@@ -223,6 +223,57 @@ function drawCallout(ctx, x, y, title, value, color) {
   label(ctx, value, x + 12, y + 30, 'left', 16, color);
 }
 
+function drawInfoPanel(ctx, x, y, width, title, lines, accent) {
+  const body = Array.isArray(lines) ? lines : [];
+  const height = 22 + body.length * 18 + 20;
+  roundedRect(ctx, x, y, width, height, 12);
+  ctx.fillStyle = 'rgba(8,16,22,0.9)';
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  label(ctx, title, x + 12, y + 15, 'left', 17, accent);
+  for (let i = 0; i < body.length; i++) {
+    label(ctx, body[i], x + 12, y + 36 + i * 18, 'left', 14, i === 0 ? css('--text', '#e8f0f6') : css('--muted', '#91a0ad'));
+  }
+  return { width, height };
+}
+
+function ellipsePoints3D(center, rx, rz, y, segments = 40) {
+  const pts = [];
+  for (let i = 0; i < segments; i++) {
+    const a = Math.PI * 2 * i / segments;
+    pts.push({ x:center.x + rx * Math.cos(a), y, z:center.z + rz * Math.sin(a) });
+  }
+  return pts;
+}
+
+function drawDisc3D(ctx, camera, center, rx, rz, y, fill, stroke, alpha) {
+  const pts = ellipsePoints3D(center, rx, rz, y);
+  ctx.globalAlpha = typeof alpha === 'number' ? alpha : 1;
+  drawPolygon3D(ctx, camera, pts, fill, stroke, 1);
+  ctx.globalAlpha = 1;
+}
+
+function drawLeaderLabel(ctx, x, y, dx, dy, text, color) {
+  const w = Math.max(120, Math.min(210, text.length * 7 + 24));
+  const h = 26;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + dx, y + dy);
+  ctx.stroke();
+  const bx = x + dx + (dx >= 0 ? 0 : -w);
+  const by = y + dy - h / 2;
+  roundedRect(ctx, bx, by, w, h, 8);
+  ctx.fillStyle = 'rgba(8,16,22,0.88)';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  label(ctx, text, bx + 10, by + h / 2, 'left', 13, color);
+}
+
 export function renderLab3DScene(canvas, { phase, fields, stateLabel, levitation, scene, geometry, experiment, orderAmplitude, avgB, vortexSpacingM }) {
   const { ctx, w, h } = prepare(canvas);
   base(ctx, w, h);
@@ -230,101 +281,154 @@ export function renderLab3DScene(canvas, { phase, fields, stateLabel, levitation
   const camera = makeCamera(w, h, scene);
   const phaseColor = phase === 'normal' ? css('--danger', '#ff756d') : phase === 'mixed' ? css('--warning', '#ffcc66') : css('--success', '#65e0ad');
   const fieldColor = experiment.appliedFieldT >= 0 ? css('--field', '#61d7ff') : css('--field-negative', '#ff9e64');
-  const sampleRadius = Math.max(3, experiment.sampleRadiusMm * 0.35);
-  const sampleHeight = Math.max(1.2, experiment.sampleHeightMm * 0.35);
-  const magnetRadius = Math.max(2, experiment.magnetRadiusMm * 0.35);
-  const magnetHeight = Math.max(1.2, experiment.magnetHeightMm * 0.35);
-  const gap = Math.max(1.2, experiment.magnetGapMm * 0.4);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  const sampleRadius = Math.max(3.4, experiment.sampleRadiusMm * 0.34);
+  const sampleHeight = Math.max(1.4, experiment.sampleHeightMm * 0.32);
+  const magnetRadius = Math.max(2.8, experiment.magnetRadiusMm * 0.34);
+  const magnetHeight = Math.max(1.5, experiment.magnetHeightMm * 0.34);
+  const gap = Math.max(1.2, experiment.magnetGapMm * 0.38);
+  const stageHeight = Math.max(1.1, sampleHeight * 0.55);
+  const stageRadius = sampleRadius * 1.16;
+  const groundY = -8.8;
+  const stageCenterY = groundY + stageHeight / 2;
+  const sampleCenterY = groundY + stageHeight + sampleHeight / 2 + 0.12;
+  const magnetCenterY = sampleCenterY + sampleHeight / 2 + gap + magnetHeight / 2;
+  const origin = { x:0, y:0, z:0 };
+
+  ctx.fillStyle = 'rgba(255,255,255,0.035)';
   roundedRect(ctx, 14, 14, w - 28, h - 28, 16);
   ctx.fill();
 
-  drawGround(ctx, camera, -sampleHeight / 2 - 6, 18, 18);
+  drawGround(ctx, camera, groundY, 20, 20);
+  drawDisc3D(ctx, camera, origin, stageRadius * 1.45, stageRadius * 1.05, groundY + 0.02, phaseColor, null, 0.05);
+  drawDisc3D(ctx, camera, origin, stageRadius * 1.12, stageRadius * 0.92, groundY + 0.015, 'rgba(0,0,0,0.65)', null, 0.22);
 
-  const sideFill = phase === 'normal' ? 'rgba(129,77,74,0.92)' : phase === 'mixed' ? 'rgba(88,76,48,0.94)' : 'rgba(26,74,83,0.94)';
-  const topFill = phase === 'normal' ? 'rgba(180,91,88,0.96)' : phase === 'mixed' ? 'rgba(191,154,70,0.96)' : 'rgba(86,206,188,0.92)';
-
-  const sample = drawCylinder3D(ctx, camera, {
-    center:{ x:0, y:0, z:0 },
-    radius:sampleRadius,
-    height:sampleHeight,
-    sideFill,
-    bottomFill:'rgba(8,18,24,0.95)',
-    topFill,
-    topStroke:phaseColor,
-    sideStroke:'rgba(255,255,255,0.06)'
+  drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:stageCenterY, z:0 },
+    radius:stageRadius,
+    height:stageHeight,
+    sideFill:'rgba(40,56,70,0.97)',
+    bottomFill:'rgba(9,16,24,0.98)',
+    topFill:'rgba(66,92,116,0.98)',
+    topStroke:'rgba(151,183,205,0.45)',
+    sideStroke:'rgba(255,255,255,0.05)'
   });
 
-  const magnetCenterY = sampleHeight / 2 + gap + magnetHeight / 2;
   drawCylinder3D(ctx, camera, {
-    center:{ x:0, y:magnetCenterY, z:0 },
+    center:{ x:0, y:sampleCenterY, z:0 },
+    radius:sampleRadius,
+    height:sampleHeight,
+    sideFill:'rgba(114,132,142,0.96)',
+    bottomFill:'rgba(60,76,88,0.98)',
+    topFill: phase === 'normal' ? 'rgba(163,103,100,0.95)' : phase === 'mixed' ? 'rgba(198,164,86,0.95)' : 'rgba(98,174,177,0.96)',
+    topStroke: phaseColor,
+    sideStroke:'rgba(255,255,255,0.08)'
+  });
+  drawDisc3D(ctx, camera, origin, sampleRadius * 0.92, sampleRadius * 0.92, sampleCenterY + sampleHeight / 2 + 0.03, phaseColor, null, 0.11);
+
+  const magnetUpperH = magnetHeight * 0.55;
+  const magnetLowerH = magnetHeight - magnetUpperH;
+  drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:magnetCenterY + magnetLowerH / 2, z:0 },
     radius:magnetRadius,
-    height:magnetHeight,
-    sideFill:'rgba(159,52,89,0.95)',
-    bottomFill:'rgba(104,24,50,0.95)',
+    height:magnetUpperH,
+    sideFill:'rgba(157,49,81,0.96)',
+    bottomFill:'rgba(112,28,55,0.96)',
     topFill:'rgba(214,88,124,0.98)',
-    topStroke:'rgba(255,194,209,0.95)',
+    topStroke:'rgba(255,203,216,0.96)',
+    sideStroke:'rgba(255,255,255,0.06)'
+  });
+  drawCylinder3D(ctx, camera, {
+    center:{ x:0, y:magnetCenterY - magnetUpperH / 2, z:0 },
+    radius:magnetRadius,
+    height:magnetLowerH,
+    sideFill:'rgba(47,92,144,0.95)',
+    bottomFill:'rgba(22,47,79,0.97)',
+    topFill:'rgba(74,134,196,0.96)',
+    topStroke:'rgba(190,220,255,0.3)',
     sideStroke:'rgba(255,255,255,0.06)'
   });
 
   if (experiment.showFieldLines3d) {
     const lines = [];
-    const lineCount = 7;
+    const lineCount = 9;
     for (let i = 0; i < lineCount; i++) {
       const t = -1 + 2 * i / (lineCount - 1);
-      const x = t * magnetRadius * 0.85;
-      const bend = (phase === 'meissner' ? 1.4 : phase === 'mixed' ? 0.8 : 0.15) * (1 - Math.abs(t) * 0.5);
-      const z = (i % 2 ? 1 : -1) * magnetRadius * 0.12;
+      const x = t * magnetRadius * 0.9;
+      const sideBend = (phase === 'meissner' ? 1.3 : phase === 'mixed' ? 0.78 : 0.2) * (0.9 - Math.abs(t) * 0.38);
+      const z = Math.sin(i * 0.9) * magnetRadius * 0.1;
+      const entryY = sampleCenterY + sampleHeight / 2 + gap * 0.12;
+      const penetrateY = sampleCenterY + sampleHeight * (phase === 'mixed' ? 0.12 : 0.42);
+      const exitY = sampleCenterY - sampleHeight * (phase === 'mixed' ? 0.42 : 0.02);
       lines.push([
-        { x, y:magnetCenterY + magnetHeight * 0.8, z },
-        { x, y:magnetCenterY + magnetHeight * 0.3, z },
-        { x: x * (1 + 0.12 * bend), y:sampleHeight / 2 + gap * 0.75, z: z + bend * 0.6 },
-        { x: x * (1 + 0.45 * bend), y:sampleHeight / 2 + gap * 0.18, z: z + bend * 1.3 },
-        { x: x * (1 + 0.6 * bend), y:-sampleHeight * 0.05, z: z + bend * 1.9 }
+        { x, y:magnetCenterY + magnetHeight * 0.7, z },
+        { x, y:magnetCenterY + magnetHeight * 0.18, z },
+        { x: x * (1 + 0.15 * sideBend), y:entryY, z: z + sideBend * 0.55 },
+        { x: x * (1 + 0.45 * sideBend), y:penetrateY, z: z + sideBend * 1.15 },
+        { x: x * (1 + 0.62 * sideBend), y:exitY, z: z + sideBend * 1.6 },
+        { x: x * (1 + 0.75 * sideBend), y:groundY + 0.32, z: z + sideBend * 2.0 }
       ]);
     }
-    for (let i = 0; i < lines.length; i++) drawPolyline3D(ctx, camera, lines[i], fieldColor, 1.6, 0.86);
+    for (let i = 0; i < lines.length; i++) drawPolyline3D(ctx, camera, lines[i], fieldColor, 1.6, 0.82);
   }
 
   if (experiment.showVortices3d && phase === 'mixed' && Number.isFinite(vortexSpacingM)) {
-    const count = Math.min(14, Math.max(3, Math.round(sampleRadius / 1.6)));
-    for (let i = 0; i < count; i++) {
-      const ang = 2 * Math.PI * i / count;
-      const rr = sampleRadius * (0.18 + 0.72 * ((i % 4) / 4));
-      const p1 = { x:Math.cos(ang) * rr, y:sampleHeight * 0.42, z:Math.sin(ang) * rr };
-      const p2 = { x:Math.cos(ang) * rr, y:-sampleHeight * 0.42, z:Math.sin(ang) * rr };
-      drawPolyline3D(ctx, camera, [p1, p2], css('--warning', '#ffcc66'), 1.3, 0.9);
+    const ringCounts = [1, 6, 10];
+    for (let r = 0; r < ringCounts.length; r++) {
+      const rr = sampleRadius * (r === 0 ? 0 : 0.28 + 0.25 * r);
+      for (let i = 0; i < ringCounts[r]; i++) {
+        const ang = ringCounts[r] === 1 ? 0 : 2 * Math.PI * i / ringCounts[r];
+        const x = Math.cos(ang) * rr;
+        const z = Math.sin(ang) * rr;
+        const p1 = { x, y:sampleCenterY + sampleHeight * 0.44, z };
+        const p2 = { x, y:sampleCenterY - sampleHeight * 0.44, z };
+        drawPolyline3D(ctx, camera, [p1, p2], css('--warning', '#ffcc66'), 1.2, 0.88);
+      }
     }
   }
 
-  const pTop = transformPoint({ x:0, y:sampleHeight / 2, z:0 }, camera);
-  const pBottom = transformPoint({ x:0, y:-sampleHeight / 2, z:0 }, camera);
-  const pMag = transformPoint({ x:0, y:magnetCenterY, z:0 }, camera);
-  arrow2D(ctx, pTop.sx + 58, pTop.sy + 34, pTop.sx + 58, pTop.sy - 46, phaseColor);
-  label(ctx, 'Fz', pTop.sx + 70, pTop.sy - 51, 'left', 16, phaseColor);
-  arrow2D(ctx, pTop.sx + 85, pTop.sy - 42, pTop.sx + 85, pTop.sy + 30, css('--muted', '#91a0ad'));
-  label(ctx, 'g', pTop.sx + 97, pTop.sy + 34, 'left', 16, css('--muted', '#91a0ad'));
+  const pSample = transformPoint({ x:sampleRadius * 0.95, y:sampleCenterY + sampleHeight * 0.12, z:sampleRadius * 0.1 }, camera);
+  const pStage = transformPoint({ x:stageRadius * 0.82, y:stageCenterY, z:stageRadius * 0.12 }, camera);
+  const pMagTop = transformPoint({ x:magnetRadius * 0.18, y:magnetCenterY + magnetHeight * 0.42, z:magnetRadius * 0.12 }, camera);
+  const pMagFront = transformPoint({ x:magnetRadius * 0.96, y:magnetCenterY - magnetHeight * 0.18, z:magnetRadius * 0.08 }, camera);
+  const pGapTop = transformPoint({ x:0, y:sampleCenterY + sampleHeight / 2, z:0 }, camera);
+  const pGapMag = transformPoint({ x:0, y:magnetCenterY - magnetHeight / 2, z:0 }, camera);
+
+  drawLeaderLabel(ctx, pMagTop.sx, pMagTop.sy, 34, -26, 'Permanent magnet (N pole)', 'rgba(255,203,216,0.95)');
+  drawLeaderLabel(ctx, pSample.sx, pSample.sy, 34, 8, 'Superconductor sample', phaseColor);
+  drawLeaderLabel(ctx, pStage.sx, pStage.sy, 30, 28, 'Cold stage / holder', 'rgba(156,195,225,0.92)');
+  drawLeaderLabel(ctx, pMagFront.sx, pMagFront.sy, 34, 20, 'S pole', 'rgba(159,205,255,0.95)');
+
+  arrow2D(ctx, pGapTop.sx + 80, pGapTop.sy + 36, pGapTop.sx + 80, pGapTop.sy - 54, phaseColor);
+  label(ctx, 'Fz', pGapTop.sx + 92, pGapTop.sy - 58, 'left', 17, phaseColor);
+  arrow2D(ctx, pGapTop.sx + 106, pGapTop.sy - 50, pGapTop.sx + 106, pGapTop.sy + 34, css('--muted', '#91a0ad'));
+  label(ctx, 'g', pGapTop.sx + 118, pGapTop.sy + 38, 'left', 17, css('--muted', '#91a0ad'));
 
   ctx.setLineDash([6, 4]);
   ctx.strokeStyle = css('--muted-2', '#647583');
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(pTop.sx - 46, pTop.sy);
-  ctx.lineTo(pMag.sx - 46, pMag.sy + 10);
+  ctx.moveTo(pGapTop.sx - 56, pGapTop.sy + 3);
+  ctx.lineTo(pGapMag.sx - 56, pGapMag.sy - 3);
   ctx.stroke();
   ctx.setLineDash([]);
-  label(ctx, `${fmt(experiment.magnetGapMm, 2)} mm gap`, pMag.sx - 52, (pTop.sy + pMag.sy) / 2, 'right', 14, css('--muted', '#91a0ad'));
+  label(ctx, `${fmt(experiment.magnetGapMm, 2)} mm gap`, pGapMag.sx - 60, (pGapTop.sy + pGapMag.sy) / 2, 'right', 14, css('--muted', '#91a0ad'));
 
-  label(ctx, stateLabel.toUpperCase(), 22, 24, 'left', 18, phaseColor);
-  label(ctx, `Bgap ${fmt(levitation.gapFieldT, 3)} T | shielding ${fmt(levitation.shielding * 100, 1)}% | pinning ${fmt(levitation.pinning, 2)}`, 22, 48, 'left', 15, css('--text', '#e8f0f6'));
+  const leftPanelW = Math.min(320, Math.max(220, w * 0.27));
+  const rightPanelW = Math.min(230, Math.max(175, w * 0.18));
+  drawInfoPanel(ctx, 20, 18, leftPanelW, stateLabel.toUpperCase(), [
+    `Bgap ${fmt(levitation.gapFieldT, 3)} T | gap ${fmt(experiment.magnetGapMm, 2)} mm`,
+    `shielding ${fmt(levitation.shielding * 100, 1)}% | pinning ${fmt(levitation.pinning, 2)}`,
+    `GL ${fields.type.toUpperCase()} | Bc2 ${fmt(fields.bc2T, 2)} T`,
+    `order amplitude ${fmt(orderAmplitude, 3)}`
+  ], phaseColor);
+  drawCallout(ctx, w - rightPanelW - 20, 18, 'Vortex spacing', Number.isFinite(vortexSpacingM) ? `${fmt(vortexSpacingM * 1e9, 1)} nm` : 'N/A', css('--warning', '#ffcc66'));
+  drawCallout(ctx, w - rightPanelW - 20, 74, 'Mean internal field', `${fmt(avgB, 3)} T`, fieldColor);
   drawCallout(ctx, 20, h - 72, 'Heuristic levitation force', formatForce(levitation.forceN), phaseColor);
-  drawCallout(ctx, w - 218, h - 72, 'Mean internal field', `${fmt(avgB, 3)} T`, fieldColor);
-  drawCallout(ctx, w - 218, 20, 'Vortex spacing', Number.isFinite(vortexSpacingM) ? `${fmt(vortexSpacingM * 1e9, 1)} nm` : 'N/A', css('--warning', '#ffcc66'));
-  drawCallout(ctx, 20, 66, 'GL summary', `${fields.type.toUpperCase()} | Bc2 ${fmt(fields.bc2T, 2)} T`, css('--accent', '#8bdcff'));
-  label(ctx, orderAmplitude > 0 ? `order amplitude ${fmt(orderAmplitude, 3)}` : 'order amplitude 0', 22, 95, 'left', 14, css('--muted', '#91a0ad'));
-  label(ctx, '3-D scene is qualitative, not a calibrated FEM model.', 22, h - 24, 'left', 14, css('--muted-2', '#647583'));
-  label(ctx, 'Drag to orbit - wheel to zoom - double-click to reset camera', w - 20, h - 24, 'right', 14, css('--muted-2', '#647583'));
+
+  const footer = '3-D scene is qualitative. Field lines, levitation force, and labels are interpretive engineering views.';
+  label(ctx, footer, 22, h - 23, 'left', 13, css('--muted-2', '#647583'));
+  label(ctx, 'Drag to orbit | wheel to zoom | double-click to reset camera', w - 20, h - 23, 'right', 13, css('--muted-2', '#647583'));
 }
 
 export function renderFieldScene(canvas, { profile, phase, BappT, halfWidthM, fields, stateLabel, magnetizationApm, fullPenetrationT }) {

@@ -6,7 +6,11 @@
 
 This package is intentionally **not** labeled as a sample-calibrated digital twin. The app distinguishes literature-derived values from engineering assumptions and exposes missing calibration fields directly in the interface.
 
-## v0.2.0 upgrade summary
+## v0.2.1 hotfix summary
+
+- Fixed overlapping text in the 3-D lab overlay panels.
+- Improved object readability with clearer magnet, sample, and cold-stage separation.
+- Integrated the 3-D objects with the floor grid using anchored staging, glow, and shadow cues.
 
 - Added a **3-D lab** view with a qualitative magnet-superconductor levitation scene.
 - Added **heuristic levitation metrics**: force, stiffness, shielding fraction, gap field, and pinning index.
