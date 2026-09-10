@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Superconductor Sim: a data-aware static browser simulator based on Superconductor Data Research.">
+  <meta name="theme-color" content="#081016">
+  <meta property="og:title" content="Superconductor Sim">
+  <meta property="og:description" content="London/GL, Bean critical-state, E-J transport and electrothermal quench in a static browser app.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="./assets/og-image.svg">
+  <title>Superconductor Sim</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/responsive.css">
+</head>
+<body>
+  <div id="runtimeError" class="runtime-error" role="alert" hidden>
+    <strong>Superconductor Sim could not initialize.</strong>
+    <span id="runtimeErrorDetail">Check that all files were uploaded with their original folder structure.</span>
+  </div>
+  <noscript><div class="runtime-error noscript-error"><strong>JavaScript is required.</strong><span>This simulator runs entirely in your browser.</span></div></noscript>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-block">
+        <img src="./assets/logo.svg" class="brand-logo" alt="" width="38" height="38">
+        <div>
+          <div class="brand-title-row">
+            <h1>Superconductor Sim</h1>
+            <span id="calibrationBadge" class="status-badge" data-ready="false">Exploratory / incomplete</span>
+          </div>
+          <p data-i18n="appSubtitle">Data-aware multiscale browser simulator</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="dataLimitsBtn" class="button secondary" type="button" data-i18n="dataLimits">Data & model limits</button>
+        <button id="exportState" class="button secondary" type="button" data-i18n="exportState">Export state</button>
+        <button id="importState" class="button secondary" type="button" data-i18n="importState">Import JSON</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <button id="languageToggle" class="button compact" type="button" data-i18n="language">한국어</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="control-panel panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow" data-i18n="experiment">Experiment</span>
+            <h2 id="materialName">Generic Type-II - demonstration card</h2>
+          </div>
+          <span id="phasePill" class="phase-pill" data-phase="mixed">Mixed / vortex</span>
+        </div>
+        <p id="operatingSummary" class="mono summary-line">T 77 K · B 80 mT · I 40 A</p>
+
+        <section class="control-section">
+          <label class="field-label" for="materialPreset" data-i18n="materialPreset">Material preset</label>
+          <select id="materialPreset" class="input"></select>
+          <label class="field-label small-gap" for="tcOverride" data-i18n="customTc">Use benchmark Tc</label>
+          <select id="tcOverride" class="input"></select>
+        </section>
+
+        <section class="control-section grid-controls">
+          <div class="control-row full">
+            <div class="control-row-head"><label for="temperatureRange" data-i18n="temperature">Temperature</label><span class="unit">K</span></div>
+            <div class="range-number"><input id="temperatureRange" type="range" min="0.05" max="300" step="0.05"><input id="temperatureNumber" class="number input" type="number" min="0.01" max="1000" step="0.05"></div>
+          </div>
+          <div class="control-row full">
+            <div class="control-row-head"><label for="fieldRange" data-i18n="appliedField">Applied field</label><span class="unit">T</span></div>
+            <div class="range-number"><input id="fieldRange" type="range" min="-2" max="2" step="0.001"><input id="fieldNumber" class="number input" type="number" min="-100" max="100" step="0.001"></div>
+          </div>
+          <div class="control-row">
+            <div class="control-row-head"><label for="angleRange" data-i18n="fieldAngle">Field angle</label><span class="unit">°</span></div>
+            <div class="range-number"><input id="angleRange" type="range" min="0" max="90" step="1"><input id="angleNumber" class="number input" type="number" min="0" max="90" step="1"></div>
+          </div>
+          <div class="control-row">
+            <div class="control-row-head"><label for="currentRange" data-i18n="transportCurrent">Transport current</label><span class="unit">A</span></div>
+            <div class="range-number"><input id="currentRange" type="range" min="0" max="500" step="1"><input id="currentNumber" class="number input" type="number" min="0" max="10000" step="1"></div>
+          </div>
+        </section>
+
+        <details class="details-block" open>
+          <summary><span data-i18n="sweep">Field sweep</span><span class="chev">+</span></summary>
+          <div class="details-body two-col">
+            <label><span data-i18n="sweepAmplitude">Amplitude</span><input id="sweepAmplitude" class="input" type="number" min="0.001" max="100" step="0.01"><small>T</small></label>
+            <label><span data-i18n="sweepRate">Sweep rate</span><input id="sweepRate" class="input" type="number" min="0.0001" max="20" step="0.01"><small>T/s</small></label>
+            <label class="full"><span>Flux model</span><select id="modelMode" class="input"><option value="hybrid">Hybrid London + Bean</option><option value="london">London equilibrium only</option><option value="bean">Bean critical-state only</option></select></label>
+            <div class="button-row full"><button id="sweepToggle" class="button primary" type="button" data-i18n="sweepStart">Start sweep</button><button id="resetFlux" class="button secondary" type="button" data-i18n="resetHistory">Reset flux history</button></div>
+          </div>
+        </details>
+
+        <details class="details-block">
+          <summary><span data-i18n="geometry">Geometry & cooling</span><span class="chev">+</span></summary>
+          <div class="details-body two-col">
+            <label><span data-i18n="magneticHalfWidth">Magnetic half-width</span><input id="magneticHalfWidth" class="input" type="number" min="0.0001" step="0.01"><small>mm</small></label>
+            <label><span>Vortex FOV</span><input id="fovUm" class="input" type="number" min="0.05" step="0.1"><small>µm</small></label>
+            <label><span data-i18n="tapeWidth">Conductor width</span><input id="widthMm" class="input" type="number" min="0.001" step="0.1"><small>mm</small></label>
+            <label><span data-i18n="scThickness">SC thickness</span><input id="scThicknessUm" class="input" type="number" min="0.001" step="0.1"><small>µm</small></label>
+            <label><span data-i18n="copperThickness">Cu stabilizer thickness</span><input id="copperThicknessUm" class="input" type="number" min="0" step="1"><small>µm</small></label>
+            <label><span data-i18n="length">Conductor length</span><input id="lengthCm" class="input" type="number" min="0.001" step="1"><small>cm</small></label>
+            <label><span data-i18n="bathTemperature">Bath temperature</span><input id="bathTemperatureK" class="input" type="number" min="0.01" step="0.1"><small>K</small></label>
+            <label><span data-i18n="heatTransfer">Heat-transfer coefficient</span><input id="heatTransfer" class="input" type="number" min="0" step="10"><small>W/m²K</small></label>
+          </div>
+        </details>
+
+        <details class="details-block">
+          <summary><span data-i18n="advanced">Advanced material parameters</span><span class="chev">+</span></summary>
+          <div class="details-body two-col">
+            <label><span>Tc</span><input id="paramTc" class="input" type="number" min="0.01" step="0.1"><small>K</small></label>
+            <label><span data-i18n="lambda0">λ reference</span><input id="paramLambda" class="input" type="number" min="0.001" step="0.1"><small>nm</small></label>
+            <label><span data-i18n="xi0">ξ reference</span><input id="paramXi" class="input" type="number" min="0.001" step="0.1"><small>nm</small></label>
+            <label><span data-i18n="jc0">Jc0</span><input id="paramJc0" class="input" type="number" min="0" step="1000000"><small>A/m²</small></label>
+            <label><span data-i18n="b0">Jc field scale B0</span><input id="paramB0" class="input" type="number" min="0.000000001" step="0.01"><small>T</small></label>
+            <label><span data-i18n="nValue">E-J exponent n</span><input id="paramN" class="input" type="number" min="1" step="1"><small>1</small></label>
+            <label><span data-i18n="anisotropy">Anisotropy γ</span><input id="paramGamma" class="input" type="number" min="1" step="0.1"><small>1</small></label>
+            <label><span data-i18n="normalResistivity">SC normal resistivity</span><input id="paramRhoNormal" class="input" type="number" min="1e-12" step="1e-8"><small>Ω·m</small></label>
+            <label><span data-i18n="scCp">SC specific heat</span><input id="paramCpSc" class="input" type="number" min="1" step="1"><small>J/kgK</small></label>
+          </div>
+        </details>
+      </aside>
+
+      <section class="visual-column">
+        <div class="visual-panel panel">
+          <nav class="view-tabs" aria-label="Simulation view">
+            <button class="view-tab active" data-view="field" type="button" data-i18n="field">Field / phase</button>
+            <button class="view-tab" data-view="vortices" type="button" data-i18n="vortices">Vortices</button>
+            <button class="view-tab" data-view="transport" type="button" data-i18n="transport">Transport</button>
+            <button class="view-tab" data-view="quench" type="button" data-i18n="quench">Quench</button>
+            <button class="view-tab" data-view="pairing" type="button" data-i18n="pairing">Pairing</button>
+          </nav>
+          <div class="canvas-wrap">
+            <canvas id="mainCanvas" aria-label="Main simulation visualization"></canvas>
+            <section id="pairingPanel" class="pairing-panel" hidden>
+              <div>
+                <span class="eyebrow">BCS / EPC helper</span>
+                <h2 data-i18n="pairingTitle">Conventional EPC Tc estimator</h2>
+                <p class="equation">T<sub>c</sub> ≈ ω<sub>log</sub>/1.2 · exp[−1.04(1+λ)/(λ−μ*(1+0.62λ))]</p>
+              </div>
+              <div class="pairing-controls">
+                <label><span data-i18n="lambdaEpc">Electron-phonon λ</span><input id="pairLambda" class="input" type="number" min="0.001" step="0.05"></label>
+                <label><span data-i18n="muStar">Coulomb μ*</span><input id="pairMu" class="input" type="number" min="0" step="0.01"></label>
+                <label><span data-i18n="omegaLog">ωlog (K)</span><input id="pairOmega" class="input" type="number" min="0.001" step="10"></label>
+              </div>
+              <div class="pair-results">
+                <div><span data-i18n="estimatedTc">Estimated Tc</span><strong id="pairTcResult">N/A</strong></div>
+                <div><span data-i18n="weakGap">Weak-coupling Δ0</span><strong id="pairGapResult">N/A</strong></div>
+              </div>
+              <p class="warning-box" data-i18n="pairingWarning">Simplified McMillan–Allen–Dynes form. Not valid as a universal Tc model.</p>
+            </section>
+          </div>
+          <div class="view-footer">
+            <p id="viewHint" data-i18n="fieldHint">Drag the applied-field slider or run a sweep.</p>
+            <div class="quench-actions"><button id="quenchToggle" class="button primary" type="button" data-i18n="startQuench">Start thermal run</button><button id="quenchReset" class="button secondary" type="button" data-i18n="resetQuench">Reset thermal run</button></div>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+          <article class="mini-panel panel"><div class="mini-head"><strong>B–T / GL</strong><span>critical fields</span></div><canvas id="phaseCanvas"></canvas></article>
+          <article class="mini-panel panel"><div class="mini-head"><strong>E–J</strong><span>power law</span></div><canvas id="transportCanvas"></canvas></article>
+          <article class="mini-panel panel"><div class="mini-head"><strong>T(t)</strong><span>electrothermal</span></div><canvas id="thermalCanvas"></canvas></article>
+        </div>
+      </section>
+
+      <aside class="metrics-panel panel">
+        <div class="panel-heading"><div><span class="eyebrow">Live state</span><h2>Derived quantities</h2></div></div>
+        <div class="metric-grid">
+          <div class="metric"><span data-i18n="phase">Phase</span><strong id="metricPhase">N/A</strong></div>
+          <div class="metric"><span data-i18n="scType">GL type</span><strong id="metricType">N/A</strong></div>
+          <div class="metric"><span data-i18n="kappa">κ</span><strong id="metricKappa">N/A</strong></div>
+          <div class="metric"><span data-i18n="orderParameter">|ψ| scale</span><strong id="metricPsi">N/A</strong></div>
+          <div class="metric"><span data-i18n="penetration">λ(T)</span><strong id="metricLambda">N/A</strong></div>
+          <div class="metric"><span data-i18n="coherence">ξ(T)</span><strong id="metricXi">N/A</strong></div>
+          <div class="metric"><span data-i18n="bc1">Bc1</span><strong id="metricBc1">N/A</strong></div>
+          <div class="metric"><span data-i18n="bc">Bc</span><strong id="metricBc">N/A</strong></div>
+          <div class="metric"><span data-i18n="bc2">Bc2</span><strong id="metricBc2">N/A</strong></div>
+          <div class="metric"><span data-i18n="jc">Jc</span><strong id="metricJc">N/A</strong></div>
+          <div class="metric"><span data-i18n="ic">Estimated Ic</span><strong id="metricIc">N/A</strong></div>
+          <div class="metric"><span data-i18n="eField">E at operating point</span><strong id="metricE">N/A</strong></div>
+          <div class="metric"><span data-i18n="magnetization">Bean M</span><strong id="metricM">N/A</strong></div>
+          <div class="metric"><span data-i18n="fullPenetration">Bean Bp</span><strong id="metricBp">N/A</strong></div>
+          <div class="metric"><span data-i18n="vortexSpacing">Vortex spacing</span><strong id="metricVortexSpacing">N/A</strong></div>
+          <div class="metric"><span data-i18n="vortexDensity">Vortex density</span><strong id="metricVortexDensity">N/A</strong></div>
+        </div>
+
+        <div class="subsection-title"><span data-i18n="copper">Copper stabilizer</span><small>NIST / RRR100</small></div>
+        <div class="metric-grid compact-metrics">
+          <div class="metric"><span data-i18n="cuK">kCu</span><strong id="metricCuK">N/A</strong></div>
+          <div class="metric"><span data-i18n="cuCp">cp,Cu</span><strong id="metricCuCp">N/A</strong></div>
+          <div class="metric"><span data-i18n="cuRho">ρCu (WF approx.)</span><strong id="metricCuRho">N/A</strong></div>
+        </div>
+
+        <div class="subsection-title"><span data-i18n="quench">Quench</span><small>0-D</small></div>
+        <div class="metric-grid compact-metrics">
+          <div class="metric"><span data-i18n="quenchTime">Simulation time</span><strong id="metricQuenchTime">N/A</strong></div>
+          <div class="metric"><span data-i18n="conductorTemp">Conductor temperature</span><strong id="metricQuenchTemp">N/A</strong></div>
+          <div class="metric"><span data-i18n="powerPerLength">Joule power / length</span><strong id="metricQuenchPower">N/A</strong></div>
+          <div class="metric wide"><span data-i18n="currentSharing">Current sharing</span><strong id="metricCurrentShare">N/A</strong></div>
+        </div>
+
+        <div class="subsection-title"><span data-i18n="provenance">Data provenance</span></div>
+        <div id="provenanceList" class="provenance-list"></div>
+        <details class="missing-block"><summary data-i18n="missingFields">Missing for calibration</summary><ul id="missingList"></ul></details>
+        <div class="model-note"><strong data-i18n="modelNote">Model note</strong><p data-i18n="modelNoteText">London/GL, Bean critical-state, phenomenological Jc and a lumped electrothermal model are coupled here.</p></div>
+      </aside>
+    </main>
+
+    <footer class="app-footer"><span data-i18n="footer">Static GitHub Pages build · no server · no external runtime dependencies</span><a href="https://github.com/JTech-CO/Superconductor-Data-Research/" target="_blank" rel="noopener">Source research ↗</a></footer>
+  </div>
+
+  <dialog id="dataDialog" class="data-dialog">
+    <div class="dialog-head"><div><span class="eyebrow">Provenance & scope</span><h2 data-i18n="dataLimits">Data & model limits</h2></div><button id="dialogClose" class="icon-button" type="button" aria-label="Close">×</button></div>
+    <div class="dialog-body">
+      <section><h3 data-i18n="sourceTitle">Primary references used by this app</h3><div id="sourceCards" class="source-cards"></div></section>
+      <section><h3 data-i18n="benchmarkTitle">Repository Tc benchmark table</h3><p class="dialog-note">Experimental-column values are literature references from the research repository, not sample-resolved calibration records. Quarantined high-pressure rows remain quarantined.</p><div class="table-wrap"><table><thead><tr><th>Formula</th><th>SG</th><th>JARVIS</th><th>Tc Exp</th><th>Tc SCDFT</th><th>Tc LM</th><th>Tc J-Scr</th><th>Pressure</th><th>Status</th></tr></thead><tbody id="benchmarkBody"></tbody></table></div></section>
+      <section><h3 data-i18n="modelMatrixTitle">Research model coverage</h3><div class="table-wrap"><table><thead><tr><th>ID</th><th>Priority</th><th>Name</th><th>Model</th></tr></thead><tbody id="modelMatrixBody"></tbody></table></div></section>
+      <section class="limits-list"><h3>What the browser solver does not claim</h3><ul><li>No full TDGL PDE solve or microscopic Eliashberg solver.</li><li>No 3-D FEM/BEM Maxwell solution, demagnetization correction, or calibrated levitation force.</li><li>No sample-specific Jc surface unless the user replaces the phenomenological parameters.</li><li>No chemical diffusion/annealing kinetics; chemistry is kept as a future coupled process model.</li><li>NIST copper fit values are support-material properties, not superconducting-layer properties.</li></ul></section>
+    </div>
+  </dialog>
+
+  <script src="./js/compat.js"></script>
+  <script src="./js/app.bundle.js"></script>
+</body>
+</html>

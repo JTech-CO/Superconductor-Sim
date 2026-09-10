@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Superconductor Sim logo">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#61d7ff"/><stop offset="1" stop-color="#65e0ad"/></linearGradient></defs>
+  <rect x="3" y="3" width="58" height="58" rx="14" fill="#0c151c" stroke="#284657"/>
+  <path d="M12 20h40M12 44h40" stroke="#345768" stroke-width="2" opacity=".7"/>
+  <rect x="20" y="16" width="24" height="32" rx="7" fill="#11232d" stroke="url(#g)" stroke-width="2"/>
+  <path d="M14 13v38M50 13v38" stroke="#61d7ff" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="26" cy="27" r="2.2" fill="#ff756d"/><circle cx="38" cy="36" r="2.2" fill="#ff756d"/>
+  <circle cx="35" cy="23" r="1.7" fill="#ffcc66"/><circle cx="28" cy="39" r="1.7" fill="#ffcc66"/>
+</svg>

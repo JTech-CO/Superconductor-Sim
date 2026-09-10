@@ -1,0 +1,9 @@
+[
+  {"id":"REPO","title":"Superconductor Data Research","url":"https://github.com/JTech-CO/Superconductor-Data-Research/"},
+  {"id":"JARVIS-2022","title":"Designing High-Tc Superconductors with BCS-inspired Screening, Density Functional Theory and Deep-learning","url":"https://arxiv.org/abs/2205.00060"},
+  {"id":"NIST-CU","title":"NIST Material Properties: OFHC Copper","url":"https://trc.nist.gov/cryogenics/materials/OFHC%20Copper/OFHC_Copper_rev1.htm"},
+  {"id":"PYTDGL","title":"pyTDGL theoretical background","url":"https://py-tdgl.readthedocs.io/en/latest/background.html"},
+  {"id":"NB-2026-APS","title":"Niobium's intrinsic coherence length and penetration depth revisited","url":"https://journals.aps.org/prb/abstract/10.1103/2nsw-n8gf"},
+  {"id":"UCI-SC","title":"UCI Superconductivity Data","url":"https://archive.ics.uci.edu/dataset/464/superconductivty%2Bdata"},
+  {"id":"GITHUB-PAGES","title":"GitHub Pages documentation","url":"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages"}
+]

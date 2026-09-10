@@ -1,0 +1,25 @@
+{
+  "source_id": "NIST-CU",
+  "source_url": "https://trc.nist.gov/cryogenics/materials/OFHC%20Copper/OFHC_Copper_rev1.htm",
+  "material": "OFHC Copper",
+  "rrr": 100,
+  "temperature_range_K": [4, 300],
+  "thermal_conductivity": {
+    "unit": "W/(m K)",
+    "equation": "log10(k)=(a+c*T^0.5+e*T+g*T^1.5+i*T^2)/(1+b*T^0.5+d*T+f*T^1.5+h*T^2)",
+    "coefficients": {"a":2.2154,"b":-0.47461,"c":-0.88068,"d":0.13871,"e":0.29505,"f":-0.02043,"g":-0.04831,"h":0.001281,"i":0.003207},
+    "fit_error_percent": 1
+  },
+  "specific_heat": {
+    "unit": "J/(kg K)",
+    "equation": "log10(y)=a+b*x+c*x^2+d*x^3+e*x^4+f*x^5+g*x^6+h*x^7+i*x^8, x=log10(T)",
+    "coefficients": {"a":-1.91844,"b":-0.15973,"c":8.61013,"d":-18.996,"e":21.9661,"f":-12.7328,"g":3.54322,"h":-0.3797,"i":0},
+    "fit_error_percent": "10 for T<15 K; 5 for T>=15 K"
+  },
+  "verification": {"temperature_K":77,"thermal_conductivity_W_mK":547.199698,"evidence_type":"derived_from_published_fit"},
+  "notes": [
+    "The simulator uses the RRR=100 fit directly.",
+    "Copper resistivity shown in the UI is a Wiedemann-Franz inversion and is explicitly an engineering approximation, not a NIST resistivity fit.",
+    "Magnetoresistance is not modeled."
+  ]
+}

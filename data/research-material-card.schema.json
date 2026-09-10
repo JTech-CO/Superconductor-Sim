@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Future sample-specific material card (contract only)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","card_id","material_id","sample_id","intended_model","source_record_ids","validity_domain","geometry","units","missing_required_fields","ready_for_calibration"],
+  "properties": {
+    "schema_version": {"const":"0.1.0"},
+    "card_id": {"type":"string"},
+    "material_id": {"type":"string"},
+    "sample_id": {"type":["string","null"]},
+    "intended_model": {"enum":["london","gl","tdgl","critical_state","electrothermal","eliashberg","chemical_kinetics","junction"]},
+    "source_record_ids": {"type":"array","items":{"type":"string"},"uniqueItems":true},
+    "validity_domain": {"type":"object"},
+    "geometry": {"type":["object","null"]},
+    "units": {"const":"SI with explicitly retained source units"},
+    "missing_required_fields": {"type":"array","items":{"type":"string"}},
+    "ready_for_calibration": {"type":"boolean"}
+  },
+  "allOf": [{"if":{"properties":{"ready_for_calibration":{"const":true}}},"then":{"properties":{"sample_id":{"type":"string","minLength":1},"missing_required_fields":{"maxItems":0},"source_record_ids":{"minItems":1},"geometry":{"type":"object"}}}}]
+}
